@@ -9,7 +9,7 @@
  * reservations — or queues — somebody is counting on.
  */
 
-import { Injectable } from '@nestjs/common';
+import { Injectable, type OnModuleInit } from '@nestjs/common';
 import type {
   AdminListSpotsInput,
   CreateSpotInput,
@@ -38,16 +38,56 @@ const SPOT_ORDER: Prisma.ParkingSpotOrderByWithRelationInput[] = [
 ];
 
 @Injectable()
-export class SpotsService {
+export class SpotsService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogService
   ) {}
 
-  /** Active spots only. What the preferred-spot picker and the day grid read. */
+  /**
+   * Ids of every hidden spot, for the realtime gateway, which decides per
+   * broadcast — synchronously, on the way out — whether a non-admin may hear
+   * it (`doc/decision/0316-hidden-spots-are-seen-and-booked-by-admins-only`).
+   *
+   * ponytail: an in-process copy of `ParkingSpot.hidden`, loaded at boot and
+   * kept current only by {@link update}. Correct for the single instance this
+   * app targets; a second API instance must read the column per broadcast (or
+   * share this set) instead.
+   */
+  private readonly hiddenSpotIds = new Set<string>();
+
+  async onModuleInit(): Promise<void> {
+    const rows = await this.prisma.client.parkingSpot.findMany({
+      where: { hidden: true },
+      select: { id: true },
+    });
+    for (const row of rows) {
+      this.hiddenSpotIds.add(row.id);
+    }
+  }
+
+  /** Whether the spot is hidden. Unknown ids are not. */
+  isHidden(spotId: string): boolean {
+    return this.hiddenSpotIds.has(spotId);
+  }
+
+  /** Active spots, hidden ones included. What the day grid reads; it filters per viewer itself. */
   async listActive(): Promise<ParkingSpot[]> {
     const rows = await this.prisma.client.parkingSpot.findMany({
       where: { active: true },
+      orderBy: SPOT_ORDER,
+    });
+    return rows.map(toContractSpot);
+  }
+
+  /**
+   * Active spots nobody has hidden — `spot.list`, the preferred-spot picker.
+   * Hidden spots are left out for admins too: bulk booking never assigns one,
+   * so preferring it would be a promise nothing keeps.
+   */
+  async listVisible(): Promise<ParkingSpot[]> {
+    const rows = await this.prisma.client.parkingSpot.findMany({
+      where: { active: true, hidden: false },
       orderBy: SPOT_ORDER,
     });
     return rows.map(toContractSpot);
@@ -96,7 +136,9 @@ export class SpotsService {
    * Deactivating through here is the same operation as {@link deactivate} and is
    * held to the same rule — otherwise `update({ active: false })` would be a way
    * around the check, which is how a spot ends up retired with people still
-   * holding reservations for it.
+   * holding reservations for it. Hiding (`hidden`) is deliberately *not* held
+   * to that rule: a hidden spot is still bookable by an admin and still shown
+   * to whoever holds it.
    */
   async update(input: UpdateSpotInput, actorUserId: string): Promise<ParkingSpot> {
     const { id, ...changes } = input;
@@ -113,8 +155,15 @@ export class SpotsService {
       ...(changes.label === undefined ? {} : { label: changes.label }),
       ...(changes.group === undefined ? {} : { group: changes.group }),
       ...(changes.active === undefined ? {} : { active: changes.active }),
+      ...(changes.hidden === undefined ? {} : { hidden: changes.hidden }),
     };
     const row = await this.prisma.client.parkingSpot.update({ where: { id }, data });
+
+    if (row.hidden) {
+      this.hiddenSpotIds.add(row.id);
+    } else {
+      this.hiddenSpotIds.delete(row.id);
+    }
 
     await this.audit.record({
       actorUserId,
@@ -123,8 +172,13 @@ export class SpotsService {
       entityId: row.id,
       payload: {
         change: 'updated',
-        before: { label: existing.label, group: existing.group, active: existing.active },
-        after: { label: row.label, group: row.group, active: row.active },
+        before: {
+          label: existing.label,
+          group: existing.group,
+          active: existing.active,
+          hidden: existing.hidden,
+        },
+        after: { label: row.label, group: row.group, active: row.active, hidden: row.hidden },
       },
     });
 
