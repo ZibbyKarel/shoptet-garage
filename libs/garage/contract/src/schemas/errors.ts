@@ -17,8 +17,9 @@ import * as z from 'zod';
  *
  * - `OUT_OF_HORIZON` — the target month is `NOT_YET_OPEN`; reservations for it
  *   have not opened yet ("Zatím neotevřeno").
- * - `RESERVATIONS_LOCKED` — the target month is `LOCKED`; its window has
- *   already closed, which includes every month that has already begun.
+ * - `RESERVATIONS_LOCKED` — the target month is `LOCKED`, which only an
+ *   admin's `FORCE_LOCKED` produces; under `AUTO` a started month stays open
+ *   (`doc/decision/0315-*`).
  *
  * Both are raised by the service layer (Task 13) on top of `monthLockState()`,
  * never by a schema.

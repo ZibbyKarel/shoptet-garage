@@ -12,6 +12,14 @@ import type { DomainEventPublisher } from './reservation-events';
 /** Nothing in this suite asserts on published events; a plain no-op stands in. */
 const noopPublisher: DomainEventPublisher = { publish: jest.fn(), notifyPromotions: jest.fn() };
 
+/**
+ * Inside September 2026's automatic window (default `openDaysBefore` 7:
+ * 2026-08-25 … 2026-08-31), where the cap is in force. Passed explicitly,
+ * because the real clock would make the expected `cap` depend on the day the
+ * suite runs.
+ */
+const IN_WINDOW = '2026-08-31';
+
 function authenticated(id: string): AuthenticatedUser {
   return {
     id,
@@ -49,7 +57,11 @@ describe('ReservationsService.myMonth', () => {
     double.seedReservation({ parkingSpotId: spot.id, userId: viewer.id, date: '2026-09-07' });
     double.seedReservation({ parkingSpotId: spot.id, userId: viewer.id, date: '2026-09-14' });
 
-    const result = await reservations.myMonth({ month: '2026-09' }, authenticated(viewer.id));
+    const result = await reservations.myMonth(
+      { month: '2026-09' },
+      authenticated(viewer.id),
+      IN_WINDOW
+    );
 
     expect(result).toEqual({
       month: '2026-09',
@@ -64,7 +76,11 @@ describe('ReservationsService.myMonth', () => {
     const [viewer, other] = [double.seedUser(), double.seedUser()];
     double.seedReservation({ parkingSpotId: spot.id, userId: other.id, date: '2026-09-07' });
 
-    const result = await reservations.myMonth({ month: '2026-09' }, authenticated(viewer.id));
+    const result = await reservations.myMonth(
+      { month: '2026-09' },
+      authenticated(viewer.id),
+      IN_WINDOW
+    );
 
     expect(result).toEqual({
       month: '2026-09',
@@ -78,7 +94,11 @@ describe('ReservationsService.myMonth', () => {
     const viewer = double.seedUser();
     double.seedLimitSettings({ monthlyReservationCap: 3 });
 
-    const result = await reservations.myMonth({ month: '2026-09' }, authenticated(viewer.id));
+    const result = await reservations.myMonth(
+      { month: '2026-09' },
+      authenticated(viewer.id),
+      IN_WINDOW
+    );
 
     expect(result.cap).toBe(3);
   });
@@ -88,7 +108,11 @@ describe('ReservationsService.myMonth', () => {
     const viewer = double.seedUser();
     double.seedReservation({ parkingSpotId: spot.id, userId: viewer.id, date: '2026-10-01' });
 
-    const result = await reservations.myMonth({ month: '2026-09' }, authenticated(viewer.id));
+    const result = await reservations.myMonth(
+      { month: '2026-09' },
+      authenticated(viewer.id),
+      IN_WINDOW
+    );
 
     expect(result).toEqual({
       month: '2026-09',
@@ -96,6 +120,31 @@ describe('ReservationsService.myMonth', () => {
       count: 0,
       cap: DEFAULT_MONTHLY_RESERVATION_CAP,
     });
+  });
+
+  it('reports cap null once the month is running — leftovers are uncapped', async () => {
+    const viewer = double.seedUser();
+
+    const result = await reservations.myMonth(
+      { month: '2026-09' },
+      authenticated(viewer.id),
+      '2026-09-02'
+    );
+
+    expect(result.cap).toBeNull();
+  });
+
+  it('reports cap null under FORCE_OPEN, even inside the automatic window', async () => {
+    const viewer = double.seedUser();
+    double.seedWindowSettings({ openDaysBefore: 7, lockMode: 'FORCE_OPEN' });
+
+    const result = await reservations.myMonth(
+      { month: '2026-09' },
+      authenticated(viewer.id),
+      IN_WINDOW
+    );
+
+    expect(result.cap).toBeNull();
   });
 });
 
@@ -128,7 +177,8 @@ describe('ReservationsService.userMonth', () => {
 
     const result = await reservations.userMonth(
       { userId: holder.id, month: '2026-09' },
-      authenticated(admin.id)
+      authenticated(admin.id),
+      IN_WINDOW
     );
 
     expect(result).toEqual({
@@ -145,9 +195,9 @@ describe('ReservationsService.userMonth', () => {
     double.seedReservation({ parkingSpotId: spot.id, userId: viewer.id, date: '2026-09-07' });
 
     const actor = authenticated(viewer.id);
-    expect(await reservations.userMonth({ userId: viewer.id, month: '2026-09' }, actor)).toEqual(
-      await reservations.myMonth({ month: '2026-09' }, actor)
-    );
+    expect(
+      await reservations.userMonth({ userId: viewer.id, month: '2026-09' }, actor, IN_WINDOW)
+    ).toEqual(await reservations.myMonth({ month: '2026-09' }, actor, IN_WINDOW));
   });
 
   it('answers an empty month for a user with no reservations in it', async () => {
@@ -157,7 +207,8 @@ describe('ReservationsService.userMonth', () => {
 
     const result = await reservations.userMonth(
       { userId: holder.id, month: '2026-09' },
-      authenticated(admin.id)
+      authenticated(admin.id),
+      IN_WINDOW
     );
 
     expect(result).toEqual({
@@ -177,7 +228,8 @@ describe('ReservationsService.userMonth', () => {
 
     const result = await reservations.userMonth(
       { userId: noSuchUser, month: '2026-09' },
-      authenticated(admin.id)
+      authenticated(admin.id),
+      IN_WINDOW
     );
 
     expect(result).toEqual({

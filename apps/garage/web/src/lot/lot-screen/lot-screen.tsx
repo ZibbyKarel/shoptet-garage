@@ -397,7 +397,7 @@ export function LotScreen() {
     );
   }
 
-  const banner = toBannerView(day.window, isAdmin, f);
+  const banner = toBannerView(day.window, isAdmin, f, todayInPrague());
   const pending =
     createReservation.isPending ||
     cancelReservation.isPending ||

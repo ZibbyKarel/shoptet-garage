@@ -414,6 +414,7 @@ export type BannerTone = 'success' | 'warning';
 /** Which `lot` message the banner renders, and the values it needs. */
 export type BannerMessageKey =
   | 'bannerOpen'
+  | 'bannerOpenUncapped'
   | 'bannerOpenForced'
   | 'bannerLockedAdmin'
   | 'bannerLockedUser'
@@ -442,12 +443,19 @@ export interface BannerView {
  * `FORCE_OPEN`/`FORCE_LOCKED` they are the range the automatic rule *would*
  * have produced and have no bearing on the state, so quoting a date from them
  * would be a false statement — `monthWindowOverviewSchema` says exactly this.
+ *
+ * Under `AUTO`, `OPEN` also covers the running month
+ * (`doc/decision/0315-*`), where the cap no longer applies and `windowTo` is
+ * already in the past. `bannerOpen` quotes `windowTo` as a still-binding
+ * deadline, so once `today` is past it we switch to `bannerOpenUncapped`,
+ * which drops the date instead of quoting a stale one.
  */
 export function toBannerView(
   window: MonthWindowOverview,
   isAdmin: boolean,
   /** Passed in rather than imported: this module is not a component and the locale is not global. */
-  formatters: DateFormatters
+  formatters: DateFormatters,
+  today: DateOnly
 ): BannerView {
   const month = formatters.monthName(parseDateOnly(startOfYearMonth(window.month)).month);
   const isAuto = window.lockMode === 'AUTO';
@@ -461,7 +469,11 @@ export function toBannerView(
     case 'OPEN':
       return {
         tone: 'success',
-        messageKey: isAuto ? 'bannerOpen' : 'bannerOpenForced',
+        messageKey: isAuto
+          ? today > window.windowTo
+            ? 'bannerOpenUncapped'
+            : 'bannerOpen'
+          : 'bannerOpenForced',
         values,
       };
     case 'LOCKED':

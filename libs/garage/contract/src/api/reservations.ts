@@ -143,18 +143,22 @@ export const monthReservationsOutputSchema = z.object({
   /** `reservedDates.length` — carried separately so a client need not recompute it. */
   count: z.int().nonnegative(),
   /**
-   * The monthly cap **in force** when this was read — the
-   * `ReservationLimitSettings` singleton's `monthlyReservationCap`, not a
-   * constant.
+   * The monthly cap **in force for this month today**, or `null` when none
+   * applies. The number is the `ReservationLimitSettings` singleton's
+   * `monthlyReservationCap`; it is only in force under `AUTO` while today lies
+   * inside the month's reservation window (`isMonthlyCapInForce`,
+   * `doc/decision/0315-the-monthly-cap-applies-only-inside-the-auto-window`).
+   * Once the month is running, and under either admin override, it is `null`
+   * and a client must not bound the selection at all.
    *
    * It travels with the count because the client's job is `cap - count`, and
-   * the cap is an admin setting now: a client that imported
+   * the cap is an admin setting: a client that imported
    * `DEFAULT_MONTHLY_RESERVATION_CAP` would grey out the wrong cells for every
    * workspace that changed it. Carried on the shared schema so
-   * `reservation.myMonth` and `admin.reservation.month` answer the same number
-   * by construction.
+   * `reservation.myMonth` and `admin.reservation.month` answer the same value
+   * by construction. Still required — never omitted, never defaulted.
    */
-  cap: z.int().positive(),
+  cap: z.int().positive().nullable(),
 });
 export type MonthReservations = z.infer<typeof monthReservationsOutputSchema>;
 

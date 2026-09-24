@@ -1,23 +1,24 @@
 /**
  * The reservation window — pure, parameterised, side-effect free.
  *
- * The algorithm is fixed by `doc/decision/0004-mvp-scope-includes-design-features.md`,
- * which in turn transcribes the `monthOpen` function from the approved visual
- * design (`doc/design/lets-park-design.dc.html`):
+ * The algorithm started as the `monthOpen` function of the approved visual
+ * design (`doc/design/lets-park-design.dc.html`, transcribed by
+ * `doc/decision/0004-mvp-scope-includes-design-features.md`) and was amended
+ * by `doc/decision/0315-the-monthly-cap-applies-only-inside-the-auto-window.md`:
  *
  * ```
- * FORCE_OPEN   -> true
- * FORCE_LOCKED -> false
- * AUTO         -> first = first day of targetDate's month
- *                 from  = first - openDaysBefore days
- *                 return today >= from && today < first
+ * FORCE_OPEN   -> OPEN
+ * FORCE_LOCKED -> LOCKED
+ * AUTO         -> from = first day of targetDate's month - openDaysBefore days
+ *                 today < from ? NOT_YET_OPEN : OPEN
  * ```
  *
  * Two consequences are load-bearing and easy to get wrong:
  *
- * 1. The window closes at the *start* of the target month, not at its end.
- *    Once a month has begun it is `LOCKED`, so a normal user can never make an
- *    ordinary reservation in the current month.
+ * 1. Under `AUTO` a month **never closes**. The window is the period in which
+ *    the monthly cap applies (`isMonthlyCapInForce`); once the month has begun
+ *    the cap is over and anybody may book the spots that are left. `LOCKED`
+ *    is only ever the admin's `FORCE_LOCKED`.
  * 2. These functions only *report* the state. They never enforce anything, and
  *    callers are expected to skip them where the lock does not apply — waitlist
  *    auto-promotion is a system action and is exempt, admins are not limited by
@@ -34,7 +35,10 @@ import type { MonthLockState, ReservationLockMode } from './domain-constants';
 export interface ReservationWindowRange {
   /** First day the month can be booked: first day of the month − `openDaysBefore`. */
   readonly from: DateOnly;
-  /** Last day the month can be booked: the day before the month starts. */
+  /**
+   * Last day the window's monthly cap applies: the day before the month
+   * starts. Booking itself stays open after it — only the cap ends here.
+   */
   readonly to: DateOnly;
 }
 
@@ -91,14 +95,30 @@ export function monthLockState(
     return 'LOCKED';
   }
 
-  const first = startOfMonth(targetDate);
   const { from } = reservationWindowRange(targetDate, openDaysBefore);
+  return compareDateOnly(today, from) < 0 ? 'NOT_YET_OPEN' : 'OPEN';
+}
 
-  if (compareDateOnly(today, from) < 0) {
-    return 'NOT_YET_OPEN';
+/**
+ * Whether the per-user monthly reservation cap applies to `targetDate`'s month
+ * **today**: only under `AUTO`, and only while today lies inside that month's
+ * window (`reservationWindowRange`, both ends inclusive).
+ *
+ * The cap exists to stop one person claiming a spot for the whole month in
+ * advance; once the month is running, leftovers are free for anybody
+ * (`doc/decision/0315-the-monthly-cap-applies-only-inside-the-auto-window.md`).
+ * `FORCE_OPEN` never caps, and under `FORCE_LOCKED` only admins can book at
+ * all, uncapped.
+ */
+export function isMonthlyCapInForce(
+  targetDate: DateOnly,
+  openDaysBefore: number,
+  lockMode: ReservationLockMode,
+  today: DateOnly
+): boolean {
+  if (lockMode !== 'AUTO') {
+    return false;
   }
-  if (compareDateOnly(today, first) >= 0) {
-    return 'LOCKED';
-  }
-  return 'OPEN';
+  const { from, to } = reservationWindowRange(targetDate, openDaysBefore);
+  return compareDateOnly(today, from) >= 0 && compareDateOnly(today, to) <= 0;
 }

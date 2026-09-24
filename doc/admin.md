@@ -144,6 +144,10 @@ stale the moment the cap changes. `AdminLimitsPanel`'s `onSuccess` invalidates
 Lowering the cap does not touch reservations that already exist — it binds
 new inserts only (`doc/decision/0312-*`).
 
+The cap binds only inside the `AUTO` reservation window; once a month is
+running, or under `FORCE_OPEN`, nobody is capped and the month summaries
+report `cap: null` (`doc/decision/0315-*`).
+
 ## Never printing a date that is not true
 
 `MonthWindowOverview.windowFrom` / `windowTo` are **always** the range the AUTO

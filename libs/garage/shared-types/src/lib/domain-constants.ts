@@ -32,8 +32,8 @@ export type ReservationLockMode = (typeof RESERVATION_LOCK_MODES)[number];
  *
  * - `NOT_YET_OPEN` — the window has not opened yet ("Zatím neotevřeno").
  * - `OPEN`         — the window is open ("Otevřeno").
- * - `LOCKED`       — the window has closed ("Uzamčeno"); a month is locked from
- *   its own first day onwards, so the *current* month is never open.
+ * - `LOCKED`       — the window has closed ("Uzamčeno"). Under `AUTO` a month is
+ *   never `LOCKED` — it only results from the admin's `FORCE_LOCKED`.
  */
 export const MONTH_LOCK_STATES = ['NOT_YET_OPEN', 'OPEN', 'LOCKED'] as const;
 export type MonthLockState = (typeof MONTH_LOCK_STATES)[number];

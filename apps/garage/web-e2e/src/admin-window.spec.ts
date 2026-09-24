@@ -71,15 +71,12 @@ const LOCK_LABEL = {
 
 type LockMode = keyof typeof LOCK_LABEL;
 
-// cs.json: admin.windowMonthRangeAuto ("otevřeno {from} – {to}") and
-// admin.windowMonthRangeForced ("automaticky by bylo otevřeno {from} – {to}").
-// Both interpolate a formatted date this file has no formatter for
-// (`useDateFormatters` lives behind a `'use client'` React module, and
-// `dates.ts`'s own Czech table is genitive day-and-month, not the range these
-// keys carry) — so each pattern pins the literal, non-interpolated prefix that
+// cs.json: admin.windowMonthRangeAuto ("otevřeno od {from}, limit do {to}") and
+// admin.windowMonthRangeForced ("automaticky by bylo otevřeno od {from}, limit do {to}").
+// The date itself is locale-formatted and moves with the calendar; the prefix
 // tells the two keys apart, and stops short of the date.
-const AUTO_RANGE_PATTERN = /^otevřeno \d/u;
-const FORCED_RANGE_PATTERN = /^automaticky by bylo otevřeno \d/u;
+const AUTO_RANGE_PATTERN = /^otevřeno od \d/u;
+const FORCED_RANGE_PATTERN = /^automaticky by bylo otevřeno od \d/u;
 
 test.describe.configure({ mode: 'serial' });
 
@@ -88,7 +85,7 @@ test.describe.configure({ mode: 'serial' });
  * (`AdminWindowPanel`'s `MONTHS_LISTED = 4`, `from: today's month`).
  * `reservation-window.service.ts` pushes one row per month **ascending**, and
  * `e2eDayForSlot` (`dates.ts`) always lands in the month right after today's,
- * so that row is always index 1 — never today's own (always `LOCKED`) and
+ * so that row is always index 1 — never today's own (running, so `OPEN` with no cap) and
  * never a `NOT_YET_OPEN` one further out.
  */
 function targetMonthRow(panel: Locator): Locator {
@@ -195,7 +192,7 @@ test('under FORCE_OPEN, an ordinary user still sees the forced-open banner and c
   // table is genitive day-and-month, for a different key entirely). The
   // pattern below leaves the month out and pins the rest of the sentence,
   // which is exactly what tells `bannerOpenForced` apart from the automatic
-  // `bannerOpen` (carries "— zapisovat lze do …") and from the locked /
+  // `bannerOpen` (carries "— do … platí měsíční limit …") and from the locked /
   // not-yet-open keys.
   //
   // `role="status"` is not unique on this screen — `lot-header.tsx` also
@@ -208,7 +205,7 @@ test('under FORCE_OPEN, an ordinary user still sees the forced-open banner and c
   // the sentence and break the `^` anchor below. The sentence itself lives in
   // that `<p>`, and only asserting against it — not the container — keeps
   // both anchors meaningful, which is what tells `bannerOpenForced` apart from
-  // the automatic `bannerOpen` ("… — zapisovat lze do {until}.").
+  // the automatic `bannerOpen` ("… — do {until} platí měsíční limit rezervací, …").
   const banner = userPage.getByRole('status').filter({ hasText: 'Rezervace na' }).locator('p');
   await expect(banner).toHaveText(/^Rezervace na .+ jsou otevřené\.$/u);
 

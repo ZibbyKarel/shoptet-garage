@@ -15,7 +15,7 @@ something new:
 everything here. `doc/implementation-plan.md` is its breakdown into tasks.
 
 This index is generated from the filesystem and accounts for every file under
-`doc/`: 22 topic documents, 200 decision records, and `doc/design/`.
+`doc/`: 22 topic documents, 201 decision records, and `doc/design/`.
 
 ---
 
@@ -62,5 +62,5 @@ staying alive (`doc/decision/0002-visual-design-source-of-truth`).
 ## Decision records
 
 Indexed in their own directory: [`doc/decision/README.md`](decision/README.md)
-lists all 200 records, one line each, in the same format as the topic-document
+lists all 201 records, one line each, in the same format as the topic-document
 table above.

@@ -279,20 +279,18 @@ function BulkReservationModalContent({
    * Not `DEFAULT_MONTHLY_RESERVATION_CAP` — that is only the value a workspace
    * starts with, and an admin can change it.
    *
-   * The `??` covers **pending and errored alike**: TanStack Query leaves `data`
-   * `undefined` permanently after a failed fetch, so "not loaded yet" and
-   * "never going to load" are the same expression here. That conflation is what
-   * produced the bug fixed in `5b2287a` — there the fallback was
-   * `POSITIVE_INFINITY`, which let a user whose month query had failed select
-   * without limit. Here the fallback is **bounded** and equal to what the
-   * server answers for an unwritten settings row, so the worst case is a
-   * workspace that lowered its cap to 2 greying out at 5 and the server
-   * rejecting on confirm — no worse than what shipped before this change, and
-   * the server is the arbiter in every branch. Do not replace this with an
-   * unbounded value, and do not widen it to `activeSummary === undefined`.
+   * **Not loaded** (pending *or* errored — TanStack Query leaves `data`
+   * `undefined` permanently after a failed fetch) falls back to the **bounded**
+   * default, equal to what the server answers for an unwritten settings row.
+   * That conflation is what produced the bug fixed in `5b2287a`, where the
+   * fallback was unbounded and a user whose month query had failed could
+   * select without limit — do not reintroduce it. `null` is different: it is
+   * the server saying, explicitly, that no cap applies to this month today
+   * (outside the AUTO window or under an admin override,
+   * `doc/decision/0315-*`), and only then is the selection unbounded.
    */
-  const cap = activeSummary?.cap ?? DEFAULT_MONTHLY_RESERVATION_CAP;
-  const remainingSlots = Math.max(0, cap - existingCount);
+  const cap = activeSummary === undefined ? DEFAULT_MONTHLY_RESERVATION_CAP : activeSummary.cap;
+  const remainingSlots = cap === null ? Number.POSITIVE_INFINITY : Math.max(0, cap - existingCount);
   const preferredSpot = toPreferredSpotView(
     profile.data === undefined ? undefined : profile.data.preferredParkingSpotId,
     spotList.data?.spots,
@@ -401,7 +399,13 @@ function BulkReservationModalContent({
   // `cap` is only ever interpolated into `errorMonthlyCapReached`'s copy —
   // passing it unconditionally for every key would also feed it to keys with
   // no `{cap}` placeholder at all.
-  const displayedErrorValues = displayedErrorKey === 'errorMonthlyCapReached' ? { cap } : undefined;
+  // ponytail: `cap` is `null` here only if the summary said "uncapped" and the
+  // server then enforced a cap anyway (an admin switched the mode in between);
+  // the default is the best number the client has for that one stale toast.
+  const displayedErrorValues =
+    displayedErrorKey === 'errorMonthlyCapReached'
+      ? { cap: cap ?? DEFAULT_MONTHLY_RESERVATION_CAP }
+      : undefined;
   // Gated on `open`, matching what the removed local `<ToastRegion>` got for
   // free: it was a descendant of `<Modal open={open}>`, which renders nothing
   // at all while closed (`modal.tsx`'s own early return). This component is
@@ -717,8 +721,10 @@ function BulkReservationModalContent({
 
           The subject is the holder whenever an admin is booking for one, so
           the note names them (`capNoteHolder`) rather than saying "you".
+
+          No note at all when the server reports no cap in force (`cap === null`).
         */}
-        {existingCount > 0 || existingCount + selected.length >= cap ? (
+        {cap !== null && (existingCount > 0 || existingCount + selected.length >= cap) ? (
           <Text as="span" size="sm" tone="subtle">
             {t(bookingForSomeoneElse ? 'capNoteHolder' : 'capNote', {
               count: existingCount,

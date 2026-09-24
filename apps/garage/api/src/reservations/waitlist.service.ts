@@ -248,8 +248,9 @@ export class WaitlistService {
    * which amends `doc/decision/0004-*`. The rule that used to be here read
    * "leaving reshuffles everybody behind you, so it is a write like any other".
    * Under the shipped `AUTO` / `openDaysBefore = 7` defaults that made leaving
-   * impossible for the whole live life of every queue: `monthLockState` returns
-   * `LOCKED` from the 1st of the target month onwards, and the target month is
+   * impossible for the whole live life of every queue: `monthLockState` then
+   * returned `LOCKED` from the 1st of the target month onwards (no longer —
+   * `doc/decision/0315-*`), and the target month is
    * the only period a queue for it can be promoted in. The person was then
    * force-promoted into a reservation they had asked to leave, with no way out.
    * The reshuffle argument also cuts the other way: everyone behind you moves

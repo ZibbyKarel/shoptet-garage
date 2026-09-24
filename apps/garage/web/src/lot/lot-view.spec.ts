@@ -431,7 +431,7 @@ describe('toBannerView', () => {
   }
 
   it('quotes the window’s last day when the state came from the automatic rule', () => {
-    const view = toBannerView(window(), false, cs);
+    const view = toBannerView(window(), false, cs, '2026-08-28');
     expect(view).toEqual({
       tone: 'success',
       messageKey: 'bannerOpen',
@@ -439,11 +439,19 @@ describe('toBannerView', () => {
     });
   });
 
+  it('drops the cap once today is past the window, in the running month', () => {
+    // `doc/decision/0315-*`: under AUTO, OPEN also covers the running month,
+    // where the cap no longer applies and `windowTo` is already in the past —
+    // quoting it as a still-binding deadline would be a false statement.
+    const view = toBannerView(window(), false, cs, '2026-09-05');
+    expect(view.messageKey).toBe('bannerOpenUncapped');
+  });
+
   it('never quotes a date when an admin forced the state', () => {
     // `monthWindowOverviewSchema`: windowFrom/windowTo are the range the AUTO
     // rule *would* have produced and are hypothetical under an override, so
-    // "zapisovat lze do 31. srpna" would be a false statement.
-    const view = toBannerView(window({ lockMode: 'FORCE_OPEN' }), false, cs);
+    // "do 31. srpna platí měsíční limit" would be a false statement.
+    const view = toBannerView(window({ lockMode: 'FORCE_OPEN' }), false, cs, '2026-08-28');
     expect(view.messageKey).toBe('bannerOpenForced');
     expect(view.values.until).toBe('');
     expect(view.values.from).toBe('');
@@ -451,13 +459,13 @@ describe('toBannerView', () => {
 
   it('tells an admin and a normal user different things about a locked month', () => {
     const locked = window({ state: 'LOCKED', lockMode: 'FORCE_LOCKED' });
-    expect(toBannerView(locked, true, cs).messageKey).toBe('bannerLockedAdmin');
-    expect(toBannerView(locked, false, cs).messageKey).toBe('bannerLockedUser');
-    expect(toBannerView(locked, false, cs).tone).toBe('warning');
+    expect(toBannerView(locked, true, cs, '2026-08-28').messageKey).toBe('bannerLockedAdmin');
+    expect(toBannerView(locked, false, cs, '2026-08-28').messageKey).toBe('bannerLockedUser');
+    expect(toBannerView(locked, false, cs, '2026-08-28').tone).toBe('warning');
   });
 
   it('has a third state the design’s boolean does not', () => {
-    const view = toBannerView(window({ state: 'NOT_YET_OPEN' }), false, cs);
+    const view = toBannerView(window({ state: 'NOT_YET_OPEN' }), false, cs, '2026-08-20');
     expect(view.messageKey).toBe('bannerNotYetOpen');
     expect(view.tone).toBe('warning');
     expect(view.values.from).toBe('25. srpna');
@@ -467,15 +475,20 @@ describe('toBannerView', () => {
     const view = toBannerView(
       window({ state: 'NOT_YET_OPEN', lockMode: 'FORCE_LOCKED' }),
       false,
-      cs
+      cs,
+      '2026-08-20'
     );
     expect(view.messageKey).toBe('bannerNotYetOpenForced');
     expect(view.values.from).toBe('');
   });
 
   it('names the month of the window, not of today', () => {
-    expect(toBannerView(window({ month: '2026-01' }), false, cs).values.month).toBe('leden');
-    expect(toBannerView(window({ month: '2026-12' }), false, cs).values.month).toBe('prosinec');
+    expect(toBannerView(window({ month: '2026-01' }), false, cs, '2026-08-28').values.month).toBe(
+      'leden'
+    );
+    expect(toBannerView(window({ month: '2026-12' }), false, cs, '2026-08-28').values.month).toBe(
+      'prosinec'
+    );
   });
 });
 

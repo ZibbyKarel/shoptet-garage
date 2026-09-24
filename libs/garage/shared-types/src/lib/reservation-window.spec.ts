@@ -1,5 +1,10 @@
 import { DEFAULT_OPEN_DAYS_BEFORE, MAX_OPEN_DAYS_BEFORE } from './domain-constants';
-import { isMonthOpen, monthLockState, reservationWindowRange } from './reservation-window';
+import {
+  isMonthOpen,
+  isMonthlyCapInForce,
+  monthLockState,
+  reservationWindowRange,
+} from './reservation-window';
 
 const DEFAULT_DAYS = DEFAULT_OPEN_DAYS_BEFORE; // 7
 
@@ -51,7 +56,8 @@ describe('monthLockState — AUTO boundaries', () => {
     ['2026-08-25', 'OPEN', 'the first day of the window'],
     ['2026-08-28', 'OPEN', 'a day inside the window'],
     ['2026-08-31', 'OPEN', 'the last day of the window'],
-    ['2026-09-01', 'LOCKED', 'the first day of the target month'],
+    ['2026-09-01', 'OPEN', 'the first day of the target month — it stays open'],
+    ['2026-09-30', 'OPEN', 'the last day of the target month'],
   ])('%s is %s (%s)', (today, expected) => {
     expect(monthLockState(target, DEFAULT_DAYS, 'AUTO', today)).toBe(expected);
   });
@@ -60,13 +66,13 @@ describe('monthLockState — AUTO boundaries', () => {
     expect(monthLockState('2027-06-01', DEFAULT_DAYS, 'AUTO', '2026-08-28')).toBe('NOT_YET_OPEN');
   });
 
-  it('locks the current month, so a normal user can never book today', () => {
-    expect(monthLockState('2026-08-28', DEFAULT_DAYS, 'AUTO', '2026-08-28')).toBe('LOCKED');
-    expect(monthLockState('2026-08-31', DEFAULT_DAYS, 'AUTO', '2026-08-01')).toBe('LOCKED');
+  it('keeps the running month open, so leftover spots can still be booked', () => {
+    expect(monthLockState('2026-08-28', DEFAULT_DAYS, 'AUTO', '2026-08-28')).toBe('OPEN');
+    expect(monthLockState('2026-08-31', DEFAULT_DAYS, 'AUTO', '2026-08-01')).toBe('OPEN');
   });
 
-  it('locks a month that has already passed', () => {
-    expect(monthLockState('2026-07-15', DEFAULT_DAYS, 'AUTO', '2026-08-28')).toBe('LOCKED');
+  it('never reports LOCKED under AUTO — a past day is refused as PAST_DATE elsewhere', () => {
+    expect(monthLockState('2026-07-15', DEFAULT_DAYS, 'AUTO', '2026-08-28')).toBe('OPEN');
   });
 });
 
@@ -77,7 +83,7 @@ describe('monthLockState — year rollover', () => {
     ['2026-12-24', 'NOT_YET_OPEN'],
     ['2026-12-25', 'OPEN'],
     ['2026-12-31', 'OPEN'],
-    ['2027-01-01', 'LOCKED'],
+    ['2027-01-01', 'OPEN'],
   ])('%s is %s', (today, expected) => {
     expect(monthLockState(target, DEFAULT_DAYS, 'AUTO', today)).toBe(expected);
   });
@@ -88,7 +94,7 @@ describe('monthLockState — across a daylight saving transition', () => {
     // April 2026 window: 2026-03-25 .. 2026-03-31, spanning 2026-03-29 (23 h).
     expect(monthLockState('2026-04-10', DEFAULT_DAYS, 'AUTO', '2026-03-24')).toBe('NOT_YET_OPEN');
     expect(monthLockState('2026-04-10', DEFAULT_DAYS, 'AUTO', '2026-03-29')).toBe('OPEN');
-    expect(monthLockState('2026-04-10', DEFAULT_DAYS, 'AUTO', '2026-04-01')).toBe('LOCKED');
+    expect(monthLockState('2026-04-10', DEFAULT_DAYS, 'AUTO', '2026-04-01')).toBe('OPEN');
   });
 
   it('opens exactly on the 25-hour fall-back day', () => {
@@ -132,7 +138,7 @@ describe('isMonthOpen', () => {
     expect(isMonthOpen('2026-09-15', DEFAULT_DAYS, 'AUTO', '2026-08-24')).toBe(false);
     expect(isMonthOpen('2026-09-15', DEFAULT_DAYS, 'AUTO', '2026-08-25')).toBe(true);
     expect(isMonthOpen('2026-09-15', DEFAULT_DAYS, 'AUTO', '2026-08-31')).toBe(true);
-    expect(isMonthOpen('2026-09-15', DEFAULT_DAYS, 'AUTO', '2026-09-01')).toBe(false);
+    expect(isMonthOpen('2026-09-15', DEFAULT_DAYS, 'AUTO', '2026-09-01')).toBe(true);
   });
 
   it('follows the admin override', () => {
@@ -153,5 +159,42 @@ describe('isMonthOpen', () => {
 
   it('rejects an invalid date instead of silently defaulting', () => {
     expect(() => isMonthOpen('2026-02-30', DEFAULT_DAYS, 'AUTO', '2026-01-25')).toThrow(TypeError);
+  });
+});
+
+describe('isMonthlyCapInForce', () => {
+  const target = '2026-09-15'; // window: 2026-08-25 .. 2026-08-31
+
+  it.each([
+    ['2026-08-24', false, 'before the window — nothing can be booked, nothing to cap'],
+    ['2026-08-25', true, 'the first day of the window'],
+    ['2026-08-31', true, 'the last day of the window'],
+    ['2026-09-01', false, 'the month has started — leftovers are free for all'],
+    ['2026-09-30', false, 'the last day of the month'],
+  ])('under AUTO on %s is %s (%s)', (today, expected) => {
+    expect(isMonthlyCapInForce(target, DEFAULT_DAYS, 'AUTO', today)).toBe(expected);
+  });
+
+  it('is false under FORCE_OPEN, even on a day inside the automatic window', () => {
+    expect(isMonthlyCapInForce(target, DEFAULT_DAYS, 'FORCE_OPEN', '2026-08-28')).toBe(false);
+  });
+
+  it('is false under FORCE_LOCKED — nobody but an admin can book, and admins book uncapped', () => {
+    expect(isMonthlyCapInForce(target, DEFAULT_DAYS, 'FORCE_LOCKED', '2026-08-28')).toBe(false);
+  });
+
+  it('answers per month, not per day — every day of the month shares one window', () => {
+    expect(isMonthlyCapInForce('2026-09-01', DEFAULT_DAYS, 'AUTO', '2026-08-28')).toBe(true);
+    expect(isMonthlyCapInForce('2026-09-30', DEFAULT_DAYS, 'AUTO', '2026-08-28')).toBe(true);
+  });
+
+  it('follows openDaysBefore', () => {
+    expect(isMonthlyCapInForce(target, 1, 'AUTO', '2026-08-30')).toBe(false);
+    expect(isMonthlyCapInForce(target, 1, 'AUTO', '2026-08-31')).toBe(true);
+  });
+
+  it('crosses a year boundary', () => {
+    expect(isMonthlyCapInForce('2027-01-10', DEFAULT_DAYS, 'AUTO', '2026-12-31')).toBe(true);
+    expect(isMonthlyCapInForce('2027-01-10', DEFAULT_DAYS, 'AUTO', '2027-01-01')).toBe(false);
   });
 });

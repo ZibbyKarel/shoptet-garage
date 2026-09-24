@@ -29,6 +29,7 @@ import type { AuthenticatedUser } from '../auth/authenticated-user';
 import { DomainError } from '../common/errors/domain-error';
 import { mapUniqueConstraintViolation } from '../common/errors/prisma-error-mapping';
 import type { PrismaService } from '../database/prisma.service';
+import type { ReservationWindowService } from '../reservation-window/reservation-window.service';
 import { MAX_CANCEL_ATTEMPTS, ReservationsService } from './reservations.service';
 
 const ACTOR: AuthenticatedUser = {
@@ -83,7 +84,10 @@ function alwaysFailing(error: unknown): { prisma: PrismaService; attempts: () =>
 
 function serviceOver(prisma: PrismaService): ReservationsService {
   const unused = undefined as never;
-  return new ReservationsService(prisma, unused, unused, unused, unused, unused, unused);
+  const window = {
+    getSettings: () => Promise.resolve({ openDaysBefore: 7, lockMode: 'AUTO' as const }),
+  } as unknown as ReservationWindowService;
+  return new ReservationsService(prisma, window, unused, unused, unused, unused, unused);
 }
 
 describe('a cancellation whose retries all lose', () => {

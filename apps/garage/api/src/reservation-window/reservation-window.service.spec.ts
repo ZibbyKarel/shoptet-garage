@@ -131,7 +131,7 @@ describe('ReservationWindowService', () => {
     it.each([
       ['a month whose window has not opened yet', '2026-12', 'NOT_YET_OPEN'],
       ['the month whose window is open now', '2026-10', 'OPEN'],
-      ['the current month, whose window has closed', '2026-09', 'LOCKED'],
+      ['the current month, running past its window', '2026-09', 'OPEN'],
     ] as const)('reports %s as %s', async (_label, month, state) => {
       // openDaysBefore = 7 puts 2026-10's window at 2026-09-24..2026-09-30, so
       // on 2026-09-02 it is still NOT_YET_OPEN. Widen it so one case is OPEN.

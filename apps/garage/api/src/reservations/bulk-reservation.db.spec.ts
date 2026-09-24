@@ -91,6 +91,20 @@ const CAP_PREEXISTING_DAYS = ['2100-03-04', '2100-03-05', '2100-03-08', '2100-03
 /** The 2 days the cap-rejected request itself asks for — Wed/Thu, same week. */
 const CAP_REQUEST_DAYS = ['2100-03-10', '2100-03-11'] as DateOnly[];
 
+/**
+ * The last day of March 2100's automatic window, whatever `openDaysBefore` is:
+ * the window always ends the day before the month starts.
+ */
+const CAP_WINDOW_TODAY = '2100-02-28' as DateOnly;
+/** 4 + 2 more March days for the uncapped case — Fri, Mon–Fri, before Easter 2100 (March 28). */
+const UNCAPPED_PREEXISTING_DAYS = [
+  '2100-03-12',
+  '2100-03-15',
+  '2100-03-16',
+  '2100-03-17',
+] as DateOnly[];
+const UNCAPPED_REQUEST_DAYS = ['2100-03-18', '2100-03-19'] as DateOnly[];
+
 /** Every day this file names, for the fixture guard. */
 const BUSINESS_DAYS = [
   ...PREVIEW_DAYS,
@@ -113,6 +127,8 @@ const MARCH_DAYS = [
   ALREADY_QUEUED_DAY,
   ...CAP_PREEXISTING_DAYS,
   ...CAP_REQUEST_DAYS,
+  ...UNCAPPED_PREEXISTING_DAYS,
+  ...UNCAPPED_REQUEST_DAYS,
 ];
 
 describe('bulk booking against a real PostgreSQL', () => {
@@ -617,6 +633,8 @@ describe('bulk booking against a real PostgreSQL', () => {
     });
 
     it('rejects the whole request with MONTHLY_RESERVATION_LIMIT_REACHED when it would push the user over the monthly cap', async () => {
+      // The file defaults to FORCE_OPEN, which never caps; the cap lives in the AUTO window.
+      await setLockMode(client, 'AUTO');
       const user = await seedUser(client);
       const preexisting = await Promise.all(Array.from({ length: 4 }, () => seedSpot(client)));
 
@@ -636,7 +654,7 @@ describe('bulk booking against a real PostgreSQL', () => {
       }
 
       const code = await codeOf(
-        harness.bulk.confirm({ dates: CAP_REQUEST_DAYS }, actorFor(user), TODAY)
+        harness.bulk.confirm({ dates: CAP_REQUEST_DAYS }, actorFor(user), CAP_WINDOW_TODAY)
       );
       expect(code).toBe('MONTHLY_RESERVATION_LIMIT_REACHED');
 
@@ -645,6 +663,31 @@ describe('bulk booking against a real PostgreSQL', () => {
         where: { userId: user.id, date: { in: CAP_REQUEST_DAYS.map(toDateColumn) } },
       });
       expect(created).toHaveLength(0);
+    });
+
+    it('books the whole request past the cap under FORCE_OPEN, which never caps', async () => {
+      const user = await seedUser(client);
+      const preexisting = await Promise.all(Array.from({ length: 4 }, () => seedSpot(client)));
+      // Free spots for the two requested days, so the allocator assigns rather than queues.
+      await seedSpot(client);
+      await seedSpot(client);
+
+      for (const [i, day] of UNCAPPED_PREEXISTING_DAYS.entries()) {
+        const spot = preexisting[i];
+        if (spot === undefined) {
+          throw new Error(`Expected a seeded spot at index ${i}.`);
+        }
+        await client.reservation.create({
+          data: { parkingSpotId: spot.id, userId: user.id, date: toDateColumn(day) },
+        });
+      }
+
+      await harness.bulk.confirm({ dates: UNCAPPED_REQUEST_DAYS }, actorFor(user), TODAY);
+
+      const created = await client.reservation.findMany({
+        where: { userId: user.id, date: { in: UNCAPPED_REQUEST_DAYS.map(toDateColumn) } },
+      });
+      expect(created).toHaveLength(2);
     });
 
     it('releases a queue the caller was already in on a day it just reserved for them', async () => {

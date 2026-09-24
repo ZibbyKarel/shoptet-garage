@@ -262,12 +262,20 @@ describe('DayOverviewService', () => {
       expect(result.canReserve).toBe(true);
     });
 
+    it('is true for an ordinary user in the running month under AUTO — the window only opens', async () => {
+      // 2026-09-15 is a Tuesday in the month `TODAY` (2026-09-02) is in.
+      const result = await overview.getDay({ date: '2026-09-15' }, authenticated('u'), TODAY);
+
+      expect(result.window.state).toBe('OPEN');
+      expect(result.canReserve).toBe(true);
+    });
+
     it('is exactly canReserveMonth and the day’s own reservability, never one of them alone', async () => {
       // The composition, asserted where it can actually be seen: an open month
       // with a weekend inside it is the case that separates the two fields.
-      // It has to be **October**, not September: the window closes at the start
-      // of the target month, so the month `TODAY` is in is locked to an
-      // ordinary user whatever `openDaysBefore` says.
+      // October works just as well as September would now that the running
+      // month stays open too (`doc/decision/0315-*`) — it is only picked here
+      // to keep the two `describe` blocks on different months.
       double.seedWindowSettings({ openDaysBefore: 40, lockMode: 'AUTO' });
 
       const saturday = await overview.getDay({ date: '2026-10-03' }, authenticated('u'), TODAY);
@@ -305,9 +313,9 @@ describe('DayOverviewService', () => {
     it('stays true on a weekend of an open month, where canReserve is false', async () => {
       double.seedWindowSettings({ openDaysBefore: 40, lockMode: 'AUTO' });
 
-      // 2026-10-03 is a Saturday, and October is the month an ordinary user can
-      // still book on 2026-09-02 — the window closes at the start of the target
-      // month, so an open month is always a **future** one for them.
+      // 2026-10-03 is a Saturday. October is inside the AUTO window on
+      // 2026-09-02; the running month (September) is open too now
+      // (`doc/decision/0315-*`), October is just this test's chosen month.
       const result = await overview.getDay({ date: '2026-10-03' }, authenticated('u'), TODAY);
 
       // Asserted, not assumed: without this the test would also pass on a month

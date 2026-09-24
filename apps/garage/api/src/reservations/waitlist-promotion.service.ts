@@ -111,6 +111,10 @@ export class WaitlistPromotionService {
    * @param actorUserId whoever's request triggered this, for the audit entry —
    *                    `AuditLog.actorUserId` is a non-null FK and there is no
    *                    "system" user row to point at
+   * @param capInForce  whether the monthly cap applies to `date`'s month today
+   *                    (`isMonthlyCapInForce`, computed by the caller from the
+   *                    window settings it already read); when `false` the
+   *                    first eligible person is promoted and no cap lock is taken
    * @returns the promotion, or `null` for an empty queue / nobody eligible, in
    *          which case the spot correctly stays free
    */
@@ -118,7 +122,8 @@ export class WaitlistPromotionService {
     tx: Prisma.TransactionClient,
     parkingSpotId: string,
     date: DateOnly,
-    actorUserId: string
+    actorUserId: string,
+    capInForce: boolean
   ): Promise<Promotion | null> {
     const queue = await this.lockQueue(tx, parkingSpotId, date);
     if (queue.length === 0) {
@@ -126,6 +131,13 @@ export class WaitlistPromotionService {
     }
 
     const eligible = await this.eligibleInOrder(tx, queue, date);
+
+    if (!capInForce) {
+      const [first] = eligible;
+      return first === undefined
+        ? null
+        : this.promoteCandidate(tx, first, parkingSpotId, date, actorUserId, queue.length);
+    }
 
     // The per-day filter above is a snapshot read; the monthly cap check is
     // the authoritative "lock, then recount" from `assertWithinMonthlyReservationCap`

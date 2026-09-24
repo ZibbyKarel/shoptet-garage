@@ -86,11 +86,13 @@ import { RESERVATION_WINDOW_SETTINGS_ID, SEED_PARKING_SPOTS } from '../lib/seed-
 /**
  * The month the e2e suite books into: the one after today's.
  *
- * The current month is never open under `AUTO` at any `openDaysBefore` — the
- * window closes on the last day before the month starts — so "next month" is
- * the nearest month a normal user can be shown booking. Returned as its first
- * and last day rather than as a `YearMonth`, because that is what the delete
- * range needs.
+ * The current month is already running by whatever day `today` falls on, so
+ * it may have too few remaining business days left for every spec's slot,
+ * and running specs would collide with dates already used or passed in
+ * earlier runs. "Next month" is always a full, untouched month — every day is
+ * still ahead of `today`, so the suite gets the same clean slate on any day
+ * it happens to run. Returned as its first and last day rather than as a
+ * `YearMonth`, because that is what the delete range needs.
  */
 export function e2eTargetMonth(today: DateOnly = todayInPrague()): {
   readonly from: DateOnly;

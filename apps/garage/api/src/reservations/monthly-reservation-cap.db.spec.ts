@@ -318,17 +318,13 @@ describe('assertWithinMonthlyReservationCap against a real PostgreSQL', () => {
     });
 
     /**
-     * `FORCE_OPEN` rather than arithmetic on `today`: these tests are about the
-     * cap, and the window is only in the way. The lock mode is a second mutable
-     * singleton, so it goes back to `AUTO` — the default — afterwards, the same
-     * way the outer `afterEach` puts the cap back.
+     * `AUTO` with the suite's `TODAY` (2098-12-29), which lies inside
+     * January 2099's window: the cap only applies there
+     * (`doc/decision/0315-the-monthly-cap-applies-only-inside-the-auto-window`),
+     * so `FORCE_OPEN` — used here before — would switch it off.
      */
     beforeEach(async () => {
       harness.publisher.reset();
-      await setLockMode(client, 'FORCE_OPEN');
-    });
-
-    afterEach(async () => {
       await setLockMode(client, 'AUTO');
     });
 
@@ -447,7 +443,7 @@ describe('assertWithinMonthlyReservationCap against a real PostgreSQL', () => {
           },
         },
       });
-      await harness.reservations.cancel({ reservationId: reservation.id }, actorFor(holder));
+      await harness.reservations.cancel({ reservationId: reservation.id }, actorFor(holder), TODAY);
 
       // Under the default cap of 5 the person first in line is under their
       // budget and takes the spot; under the configured 3 they are skipped.
