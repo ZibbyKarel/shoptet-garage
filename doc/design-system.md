@@ -140,8 +140,8 @@ path vs. an `exports` mapping in the lib's `package.json`) is decided by
 whichever task first styles the web app:
 
 ```css
-@import 'tailwindcss';
-@import './tokens.css';
+@import "tailwindcss";
+@import "./tokens.css";
 
 @theme {
   /* breakpoints – literal values, Tailwind needs them for @media */
@@ -263,7 +263,7 @@ current since.
   set the same property (`bg-bg` and `bg-bg-muted`, `text-fg` and
   `text-fg-3`) have the same specificity – whichever Tailwind emits later in
   the stylesheet wins, not whichever comes later in `className`. Adding
-  disabled colors *on top of* the enabled ones therefore works by luck for
+  disabled colors _on top of_ the enabled ones therefore works by luck for
   any given pair, or silently doesn't. Enabled-state colors therefore belong
   in the enabled branch of a ternary, so an element never carries both halves
   of a pair at once. The same applies to `checked:` – that variant overrides
@@ -275,11 +275,11 @@ current since.
   invariant is guarded by `disabled-styling.spec.tsx`. That spec doesn't check
   a list of known-bad pairs but the rule itself: **no element may carry two
   unconditional color utilities that set the same property**
-  (`bg-*` / `text-*` / `border-*`). Classification goes by the *token name*,
+  (`bg-*` / `text-*` / `border-*`). Classification goes by the _token name_,
   not by the prefix, so that `text-sm` (a font size) or `border-2` (a width)
   don't fall into a color group.
 - **The error state is a message.** The `error` prop doesn't exist as a
-  boolean: the error text *is* the state. It sets `aria-invalid`, the red
+  boolean: the error text _is_ the state. It sets `aria-invalid`, the red
   border, and `role="alert"` together, so they can't drift apart. When an
   element is `disabled` at the same time, **the disabled state wins**: a field
   the user cannot edit shouldn't also be shouting at them through a red
@@ -295,14 +295,14 @@ type).
 
 ### `Button`
 
-| prop | type | default | description |
-| --- | --- | --- | --- |
-| `variant` | `'primary' \| 'secondary' \| 'outline' \| 'danger' \| 'ghost'` | `'primary'` | visual weight |
-| `size` | `ControlSize` | `'md'` | height |
-| `loading` | `boolean` | `false` | spinner + `aria-busy` + `disabled` |
-| `fullWidth` | `boolean` | `false` | stretches to the parent's width |
-| `startAdornment` / `endAdornment` | `ReactNode` | – | content before/after the label |
-| `type` | `'button' \| 'submit' \| 'reset'` | `'button'` | defaults to `button`, so it never accidentally submits a form |
+| prop                              | type                                                           | default     | description                                                   |
+| --------------------------------- | -------------------------------------------------------------- | ----------- | ------------------------------------------------------------- |
+| `variant`                         | `'primary' \| 'secondary' \| 'outline' \| 'danger' \| 'ghost'` | `'primary'` | visual weight                                                 |
+| `size`                            | `ControlSize`                                                  | `'md'`      | height                                                        |
+| `loading`                         | `boolean`                                                      | `false`     | spinner + `aria-busy` + `disabled`                            |
+| `fullWidth`                       | `boolean`                                                      | `false`     | stretches to the parent's width                               |
+| `startAdornment` / `endAdornment` | `ReactNode`                                                    | –           | content before/after the label                                |
+| `type`                            | `'button' \| 'submit' \| 'reset'`                              | `'button'`  | defaults to `button`, so it never accidentally submits a form |
 
 Plus every native `<button>` attribute. `ref` points at the `<button>`.
 
@@ -350,12 +350,12 @@ caller must expose it itself.
 
 ### `Avatar`
 
-| prop | type | default |
-| --- | --- | --- |
-| `initials` | `string` | – (required) |
-| `label` | `string` | – |
-| `tone` | `'dark' \| 'info' \| 'neutral' \| 'warning'` | `'neutral'` |
-| `size` | `'sm' \| 'md' \| 'lg'` (24/32/40 px) | `'md'` |
+| prop       | type                                         | default      |
+| ---------- | -------------------------------------------- | ------------ |
+| `initials` | `string`                                     | – (required) |
+| `label`    | `string`                                     | –            |
+| `tone`     | `'dark' \| 'info' \| 'neutral' \| 'warning'` | `'neutral'`  |
+| `size`     | `'sm' \| 'md' \| 'lg'` (24/32/40 px)         | `'md'`       |
 
 With `label` it's `role="img"` with an accessible name; without it,
 `aria-hidden` – the assumption is that a name is written next to it.
@@ -371,14 +371,14 @@ and Space work by virtue of the element itself, and it never submits a form.
 
 ### `Stepper`
 
-| prop | type | default |
-| --- | --- | --- |
-| `value` / `defaultValue` / `onValueChange` | `number` / `(v: number) => void` | uncontrolled, starting at `min` |
-| `min` / `max` / `step` | `number` | `0` / `MAX_SAFE_INTEGER` / `1` |
-| `label` | `string` | – (required) |
-| `formatValue` | `(v: number) => string` | – |
-| `decrementLabel` / `incrementLabel` | `string` | `'Snížit'` ("Decrease") / `'Zvýšit'` ("Increase") |
-| `size` | `ControlSize` | `'lg'` (the only size the design draws) |
+| prop                                       | type                             | default                                           |
+| ------------------------------------------ | -------------------------------- | ------------------------------------------------- |
+| `value` / `defaultValue` / `onValueChange` | `number` / `(v: number) => void` | uncontrolled, starting at `min`                   |
+| `min` / `max` / `step`                     | `number`                         | `0` / `MAX_SAFE_INTEGER` / `1`                    |
+| `label`                                    | `string`                         | – (required)                                      |
+| `formatValue`                              | `(v: number) => string`          | –                                                 |
+| `decrementLabel` / `incrementLabel`        | `string`                         | `'Snížit'` ("Decrease") / `'Zvýšit'` ("Increase") |
+| `size`                                     | `ControlSize`                    | `'lg'` (the only size the design draws)           |
 
 The value has `role="spinbutton"`, so it's reachable via Tab and operable
 with the arrow keys, Home, and End – the buttons are a mouse convenience, not
@@ -392,15 +392,15 @@ Added by `doc/decision/0311-*`, alongside the app-layer Tailwind ban:
 - `Badge` – `size?: 'sm' | 'md'` (default `'md'`), `tone` gained `'tag'`,
   `transform?: 'none' | 'uppercase'` (forces uppercase + caps tracking).
 - `Box` – `as` (one of the tags `StackAs` below lists), `position?: 'static' |
-  'relative' | 'absolute' | 'sticky'`, `placement?:` one of six
+'relative' | 'absolute' | 'sticky'`, `placement?:` one of six
   corner/edge-centre positions (implies `position="absolute"`),
   `interactive?: 'none'` (`pointer-events-none`), `radius` gained `'cta'`
   (the fully-rounded pill step), `inset?: 'top'`, `layer?: 'sticky' |
-  'dropdown' | 'overlay'`, `height?: 'bar'`, `minHeight?: 'viewport'`,
+'dropdown' | 'overlay'`, `height?: 'bar'`, `minHeight?: 'viewport'`,
   `shadow?: 'sm' | 'md' | 'lg'`, and `border` widened from `boolean` to
   `boolean | 'bottom' | 'top'`.
 - `Stack` – `as?: 'div' | 'section' | 'header' | 'footer' | 'main' | 'nav' |
-  'aside' | 'article' | 'span'`, `spacingX`/`spacingY` (override `spacing`
+'aside' | 'article' | 'span'`, `spacingX`/`spacingY` (override `spacing`
   per axis), `minHeight?: 'viewport'`, `height?: 'full'`.
 - `Card` – `fillHeight?: boolean` (`h-full`, for cards stretched to a `Grid`
   row's tallest sibling).
@@ -457,6 +457,14 @@ dark outline (`--brand-dark`): the fill is what clears 3:1 on the lot asphalt,
 and the outline is what clears it on white. `contrast.spec.tsx` pins both.
 The web app uses it for the EV-charger mark
 (`doc/decision/0317-the-ev-charger-flag-is-informational-and-shown-to-everyone`).
+
+### `EyeOffIcon`
+
+A crossed-out eye, drawn as an SVG stroke in `--neutral-0`. Same `size` and
+`label` contract as `BoltIcon`. Its one surface is the lot asphalt, where the
+stroke clears 3:1; `contrast.spec.tsx` pins it. The web app uses it for the
+hidden-spot mark on the lot tile
+(`doc/decision/0316-hidden-spots-are-seen-and-booked-by-admins-only`).
 
 ### `ToggleTile`
 
@@ -524,18 +532,18 @@ including the three earlier attempts this replaced, is in
 
 ### `Modal`
 
-| prop | type | default |
-| --- | --- | --- |
-| `open` | `boolean` | – (required) |
-| `onClose` | `() => void` | – (required) |
-| `title` | `ReactNode` | – (required; it is also the accessible name) |
-| `description` | `ReactNode` | – (wired to `aria-describedby`) |
-| `eyebrow` | `ReactNode` | – (a pill above the title) |
-| `footer` | `ReactNode` | – (right-aligned) |
-| `size` | `'sm' \| 'md'` | `'sm'` (460 / 620 px) |
-| `closeOnScrimClick` | `boolean` | `true` |
-| `closeLabel` | `string` | `'Zavřít'` ("Close") |
-| `hideCloseButton` | `boolean` | `false` |
+| prop                | type           | default                                      |
+| ------------------- | -------------- | -------------------------------------------- |
+| `open`              | `boolean`      | – (required)                                 |
+| `onClose`           | `() => void`   | – (required)                                 |
+| `title`             | `ReactNode`    | – (required; it is also the accessible name) |
+| `description`       | `ReactNode`    | – (wired to `aria-describedby`)              |
+| `eyebrow`           | `ReactNode`    | – (a pill above the title)                   |
+| `footer`            | `ReactNode`    | – (right-aligned)                            |
+| `size`              | `'sm' \| 'md'` | `'sm'` (460 / 620 px)                        |
+| `closeOnScrimClick` | `boolean`      | `true`                                       |
+| `closeLabel`        | `string`       | `'Zavřít'` ("Close")                         |
+| `hideCloseButton`   | `boolean`      | `false`                                      |
 
 A `<div role="dialog" aria-modal="true">` in a portal on `document.body`.
 **It never closes itself** – the caller owns `open`, and `onClose` is called for
@@ -558,15 +566,15 @@ What it does for accessibility:
 
 ### `Dropdown`
 
-| prop | type | default |
-| --- | --- | --- |
-| `trigger` | `ReactNode` | – (content of the button the component owns) |
-| `triggerLabel` | `string` | – (the trigger's name, when it isn't self-describing) |
-| `items` | `DropdownItem[]` | – (required) |
-| `onSelect` | `(id: string) => void` | – |
-| `header` | `ReactNode` | – (a non-focusable block above the items) |
-| `label` | `string` | the trigger's name |
-| `align` | `'start' \| 'end'` | `'end'` |
+| prop           | type                   | default                                               |
+| -------------- | ---------------------- | ----------------------------------------------------- |
+| `trigger`      | `ReactNode`            | – (content of the button the component owns)          |
+| `triggerLabel` | `string`               | – (the trigger's name, when it isn't self-describing) |
+| `items`        | `DropdownItem[]`       | – (required)                                          |
+| `onSelect`     | `(id: string) => void` | –                                                     |
+| `header`       | `ReactNode`            | – (a non-focusable block above the items)             |
+| `label`        | `string`               | the trigger's name                                    |
+| `align`        | `'start' \| 'end'`     | `'end'`                                               |
 
 `DropdownItem`: `id`, `separator?`, `label`, `trailing?`, `danger?`,
 `disabled?`. With `separator: true` the other fields are ignored and the item
@@ -589,11 +597,11 @@ within the trigger's stacking context.
 
 ### `Tabs`
 
-| prop | type | default |
-| --- | --- | --- |
-| `items` | `TabItem[]` | – (required) |
+| prop                                       | type                              | default                                  |
+| ------------------------------------------ | --------------------------------- | ---------------------------------------- |
+| `items`                                    | `TabItem[]`                       | – (required)                             |
 | `value` / `defaultValue` / `onValueChange` | `string` / `(id: string) => void` | uncontrolled, from the first enabled tab |
-| `label` | `string` | – (the strip's name) |
+| `label`                                    | `string`                          | – (the strip's name)                     |
 
 `TabItem`: `id`, `label`, `content?`, `disabled?`.
 
@@ -612,11 +620,11 @@ shifts when the selection changes.
 
 ### `Tooltip`
 
-| prop | type | default |
-| --- | --- | --- |
-| `content` | `ReactNode` | – (required) |
-| `children` | `ReactElement` | – (exactly one focusable element) |
-| `placement` | `'top' \| 'bottom'` | `'top'` |
+| prop        | type                | default                           |
+| ----------- | ------------------- | --------------------------------- |
+| `content`   | `ReactNode`         | – (required)                      |
+| `children`  | `ReactElement`      | – (exactly one focusable element) |
+| `placement` | `'top' \| 'bottom'` | `'top'`                           |
 
 It opens on **focus as well as hover**, and closes on blur, pointer leave and
 `Escape` (without moving focus). Because Escape goes through the layer tree, a
@@ -633,20 +641,20 @@ own to the tab order.
 
 ### `Toast` and `ToastRegion`
 
-| prop (`Toast`) | type | default |
-| --- | --- | --- |
-| `children` | `ReactNode` | – (required; the message itself) |
-| `title` | `ReactNode` | – (a bold first line) |
-| `tone` | `'neutral' \| 'info' \| 'success' \| 'warning' \| 'danger'` | `'info'` |
-| `icon` | `ReactNode` | – (decorative, `aria-hidden`) |
-| `onDismiss` | `() => void` | – (only this makes the × button appear) |
-| `dismissLabel` | `string` | `'Zavřít'` ("Close") |
+| prop (`Toast`) | type                                                        | default                                 |
+| -------------- | ----------------------------------------------------------- | --------------------------------------- |
+| `children`     | `ReactNode`                                                 | – (required; the message itself)        |
+| `title`        | `ReactNode`                                                 | – (a bold first line)                   |
+| `tone`         | `'neutral' \| 'info' \| 'success' \| 'warning' \| 'danger'` | `'info'`                                |
+| `icon`         | `ReactNode`                                                 | – (decorative, `aria-hidden`)           |
+| `onDismiss`    | `() => void`                                                | – (only this makes the × button appear) |
+| `dismissLabel` | `string`                                                    | `'Zavřít'` ("Close")                    |
 
-| prop (`ToastRegion`) | type | default |
-| --- | --- | --- |
-| `children` | `ReactNode` | – (`Toast` elements; none is fine) |
-| `placement` | `'top-right' \| 'bottom-right' \| 'bottom-center'` | `'top-right'` |
-| `label` | `string` | – (the region's name) |
+| prop (`ToastRegion`) | type                                               | default                            |
+| -------------------- | -------------------------------------------------- | ---------------------------------- |
+| `children`           | `ReactNode`                                        | – (`Toast` elements; none is fine) |
+| `placement`          | `'top-right' \| 'bottom-right' \| 'bottom-center'` | `'top-right'`                      |
+| `label`              | `string`                                           | – (the region's name)              |
 
 **It announces without stealing focus** – that is the whole point of a toast.
 The live region is the **`Toast` itself**: `role="status"` (polite) for every
@@ -747,7 +755,7 @@ libs/shared/design-system/
   call `useTranslations`, so requiring the prop is what keeps the copy in app
   code, and the compiler asks for it.
 - **The swap-don't-layer rule from the primitives still applies.** A sorted vs.
-  an unsorted column header supplies its *whole* color set in one branch of the
+  an unsorted column header supplies its _whole_ color set in one branch of the
   ternary; two unconditional `text-*` utilities would resolve by Tailwind's emit
   order, not by the order they appear in `className`.
 - **The Storybook `preview.css` names two `@source` directories.** A compound
@@ -766,20 +774,20 @@ It is the **wrapper lib** for `@tanstack/react-table` — the single place in th
 workspace allowed to import it (`WRAPPED_LIBRARIES` in `eslint.config.mjs`).
 No TanStack type crosses its props.
 
-| prop | type | default |
-| --- | --- | --- |
-| `columns` | `DataTableColumn<TData>[]` | – (required) |
-| `data` | `TData[]` | – (required) |
-| `getRowId` | `(row: TData) => string` | – (required) |
-| `title` | `string` | – (required; visible card title **and** the table's accessible name) |
-| `description` | `ReactNode` | – |
-| `actions` | `ReactNode` | – (right of the header band: a search field, or a button) |
-| `toolbar` | `ReactNode` | – (a band under the header, for filters) |
-| `minWidth` | `string` | – (below it the card scrolls sideways) |
-| `defaultSort` / `sort` / `onSortChange` | `DataTableSort` / `DataTableSort \| null` / `(s) => void` | uncontrolled |
-| `emptyTitle` | `string` | – (required; the empty state's title, the caller's copy) |
-| `emptyDescription` / `emptyAction` | `ReactNode` | – |
-| `className` | `string` | – (merged onto the card's outer `<section>`) |
+| prop                                    | type                                                      | default                                                              |
+| --------------------------------------- | --------------------------------------------------------- | -------------------------------------------------------------------- |
+| `columns`                               | `DataTableColumn<TData>[]`                                | – (required)                                                         |
+| `data`                                  | `TData[]`                                                 | – (required)                                                         |
+| `getRowId`                              | `(row: TData) => string`                                  | – (required)                                                         |
+| `title`                                 | `string`                                                  | – (required; visible card title **and** the table's accessible name) |
+| `description`                           | `ReactNode`                                               | –                                                                    |
+| `actions`                               | `ReactNode`                                               | – (right of the header band: a search field, or a button)            |
+| `toolbar`                               | `ReactNode`                                               | – (a band under the header, for filters)                             |
+| `minWidth`                              | `string`                                                  | – (below it the card scrolls sideways)                               |
+| `defaultSort` / `sort` / `onSortChange` | `DataTableSort` / `DataTableSort \| null` / `(s) => void` | uncontrolled                                                         |
+| `emptyTitle`                            | `string`                                                  | – (required; the empty state's title, the caller's copy)             |
+| `emptyDescription` / `emptyAction`      | `ReactNode`                                               | –                                                                    |
+| `className`                             | `string`                                                  | – (merged onto the card's outer `<section>`)                         |
 
 `DataTableColumn<TData>`: `id`, `header`, `cell: (row) => ReactNode`,
 `sortValue?`, `align?: 'start' | 'end'`, `width?`.
@@ -804,15 +812,15 @@ No TanStack type crosses its props.
 
 ### `EmptyState`
 
-| prop | type | default |
-| --- | --- | --- |
-| `title` | `ReactNode` | – (required) |
-| `description` | `ReactNode` | – |
-| `icon` | `ReactNode` | – (decorative, `aria-hidden`) |
-| `action` | `ReactNode` | – (usually one `Button`) |
-| `size` | `'sm' \| 'md'` | `'md'` (`sm` is what `DataTable` uses) |
-| `headingLevel` | `2 \| 3 \| 4` | – (a `<p>` when omitted) |
-| `className` | `string` | – (merged onto the root `<div>`) |
+| prop           | type           | default                                |
+| -------------- | -------------- | -------------------------------------- |
+| `title`        | `ReactNode`    | – (required)                           |
+| `description`  | `ReactNode`    | –                                      |
+| `icon`         | `ReactNode`    | – (decorative, `aria-hidden`)          |
+| `action`       | `ReactNode`    | – (usually one `Button`)               |
+| `size`         | `'sm' \| 'md'` | `'md'` (`sm` is what `DataTable` uses) |
+| `headingLevel` | `2 \| 3 \| 4`  | – (a `<p>` when omitted)               |
+| `className`    | `string`       | – (merged onto the root `<div>`)       |
 
 **`headingLevel` is deliberately undefaulted.** Only the page knows its own
 outline, and a component that guesses a level produces the skipped-heading
@@ -820,16 +828,16 @@ defect screen-reader users navigate straight into.
 
 ### `ConfirmDialog`
 
-| prop | type | default |
-| --- | --- | --- |
-| `open` | `boolean` | – (required) |
-| `title` | `ReactNode` | – (required; the dialog's accessible name) |
-| `description` | `ReactNode` | – (wired to `aria-describedby`) |
-| `onConfirm` / `onCancel` | `() => void` | – (both required) |
-| `confirmLabel` | `string` | – (required; the caller's copy) |
-| `cancelLabel` | `string` | – (required; the caller's copy) |
-| `tone` | `'default' \| 'danger'` | `'default'` |
-| `loading` | `boolean` | `false` |
+| prop                     | type                    | default                                    |
+| ------------------------ | ----------------------- | ------------------------------------------ |
+| `open`                   | `boolean`               | – (required)                               |
+| `title`                  | `ReactNode`             | – (required; the dialog's accessible name) |
+| `description`            | `ReactNode`             | – (wired to `aria-describedby`)            |
+| `onConfirm` / `onCancel` | `() => void`            | – (both required)                          |
+| `confirmLabel`           | `string`                | – (required; the caller's copy)            |
+| `cancelLabel`            | `string`                | – (required; the caller's copy)            |
+| `tone`                   | `'default' \| 'danger'` | `'default'`                                |
+| `loading`                | `boolean`               | `false`                                    |
 
 - **Every way out that is not confirmation calls `onCancel`** — the cancel
   button, Escape, the scrim and the ×, all through one guard, so there is no
@@ -862,7 +870,7 @@ and without addons, for the reasons in
 ## How to add a compound
 
 1. `src/lib/<name>.tsx` – composed from primitives. If it needs a value no
-   primitive and no token supplies, that value is *invented*: say so in a
+   primitive and no token supplies, that value is _invented_: say so in a
    decision record, the way `0071` does.
 2. `src/lib/<name>.stories.tsx` and `src/lib/<name>.spec.tsx` – **at the same
    time**, not afterward. Fixtures stay domain-free.
