@@ -114,13 +114,19 @@ export async function startRealtimeTestApp(
 /** A `UserSummary`-shaped seed, so a spec can assert on what a broadcast carried. */
 export function seedEmployee(
   double: PrismaDouble,
-  seed: { oktaId: string; name: string; licensePlate?: string | null }
+  seed: {
+    oktaId: string;
+    name: string;
+    licensePlate?: string | null;
+    role?: 'USER' | 'ADMIN';
+  }
 ): { id: string; name: string; licensePlate: string | null; oktaId: string } {
   const row = double.seedUser({
     oktaId: seed.oktaId,
     email: `${seed.oktaId}@example.test`,
     name: seed.name,
     licensePlate: seed.licensePlate ?? null,
+    role: seed.role ?? 'USER',
   });
   return { id: row.id, name: row.name, licensePlate: row.licensePlate, oktaId: row.oktaId };
 }

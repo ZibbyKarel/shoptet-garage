@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
+import { SpotsModule } from '../spots/spots.module';
 import { LockService } from './lock.service';
 import { RealtimeHandshakeAuthenticator } from './realtime-handshake';
 import { RealtimeGateway } from './realtime.gateway';
@@ -34,9 +35,14 @@ import { RealtimeDomainEventPublisher } from './realtime.publisher';
  * process's single JWKS client rather than open a second one with its own
  * cache, rate limiter and rotation moment. `PrismaService` and
  * `GracefulShutdownService` arrive from global modules.
+ *
+ * `SpotsModule` is imported for `SpotsService.isHidden`, which the gateway
+ * reads on every broadcast to decide whether it may reach a non-admin
+ * (`doc/decision/0316-*`). `SpotsModule` imports nothing from `realtime/`, so
+ * this does not close a cycle.
  */
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, SpotsModule],
   providers: [
     LockService,
     // Not exported: who may connect is this module's own business, and the

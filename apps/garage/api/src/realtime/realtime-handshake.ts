@@ -32,7 +32,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import type { Socket } from 'socket.io';
 import * as z from 'zod';
-import type { UserSummary } from '@garage/contract';
+import type { UserRole, UserSummary } from '@garage/contract';
 import type { ClientToServerEvents, ServerToClientEvents } from '@garage/contract/realtime';
 import { AuthUserService } from '../auth/auth-user.service';
 import { JwksVerifierService } from '../auth/jwks-verifier.service';
@@ -66,6 +66,12 @@ export const HANDSHAKE_REJECTION_MESSAGE = 'Unauthorized';
  */
 export interface RealtimeSocketData {
   readonly user: UserSummary;
+  /**
+   * The connecting user's role, at handshake time. Read by the gateway to send
+   * a hidden spot's traffic to admins only (`doc/decision/0316-*`). Never
+   * broadcast — `user` is the only part of this that reaches another browser.
+   */
+  readonly role: UserRole;
 }
 
 /** A connection, typed from the contract in the direction the server sees it. */
@@ -178,7 +184,10 @@ export class RealtimeHandshakeAuthenticator {
       // The whole object, not a field of it: `data` is written exactly once, by
       // this middleware, before the socket is connected and before any handler
       // can read it.
-      socket.data = { user: await this.loadUserSummary(user.id, user.name) };
+      socket.data = {
+        user: await this.loadUserSummary(user.id, user.name),
+        role: user.role,
+      };
     } catch (error) {
       // A deactivated user. The one rejection an *authenticated* caller can
       // reach, so it keeps its stack — the same call `ContractExceptionFilter`
