@@ -230,6 +230,7 @@
     "spotsLabelField": "Label",
     "spotsLabelRequired": "Enter the spot’s label.",
     "spotsGroupField": "Category",
+    "spotsEvChargerField": "EV charger",
     "spotsSave": "Save",
     "spotsCancel": "Cancel",
     "spotsDuplicateLabel": "A spot with this label already exists.",

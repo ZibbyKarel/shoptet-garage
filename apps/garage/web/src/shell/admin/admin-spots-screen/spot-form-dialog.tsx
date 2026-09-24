@@ -3,23 +3,32 @@
 import * as z from 'zod';
 import type { ParkingSpot } from '@garage/contract';
 import { FormField, FormProvider, useAppForm } from '@garage/form';
-import { Button, Input, Modal, Select, Stack, Toast } from '@garage/design-system/primitives';
+import {
+  Button,
+  Checkbox,
+  Input,
+  Modal,
+  Select,
+  Stack,
+  Toast,
+} from '@garage/design-system/primitives';
 import { PARKING_GROUPS, useTranslations } from '@garage/i18n';
 
 /** Field-level validation. The contract re-checks the same shape on arrival. */
 const spotFormSchema = z.object({
   label: z.string().trim().min(1),
   group: z.enum(PARKING_GROUPS),
+  evCharger: z.boolean(),
 });
 type SpotFormValues = z.infer<typeof spotFormSchema>;
 
 export interface SpotFormDialogProps {
   /**
    * The spot being edited, or `null` when adding a new one — narrowed to the
-   * two fields the form actually edits, so the dialog cannot start reading
+   * three fields the form edits, so the dialog cannot start reading
    * `active` or an id it has no business acting on.
    */
-  readonly spot: Pick<ParkingSpot, 'label' | 'group'> | null;
+  readonly spot: Pick<ParkingSpot, 'label' | 'group' | 'evCharger'> | null;
   readonly errorMessage: string | null;
   readonly saving: boolean;
   readonly onCancel: () => void;
@@ -41,6 +50,7 @@ export function SpotFormDialog({
     defaultValues: {
       label: spot?.label ?? '',
       group: spot?.group ?? PARKING_GROUPS[0],
+      evCharger: spot?.evCharger ?? false,
     },
   });
 
@@ -90,6 +100,19 @@ export function SpotFormDialog({
                   </option>
                 ))}
               </Select>
+            )}
+          />
+          <FormField
+            name="evCharger"
+            render={({ field }) => (
+              <Checkbox
+                label={t('spotsEvChargerField')}
+                name={field.name}
+                ref={field.ref}
+                checked={field.value}
+                onBlur={field.onBlur}
+                onChange={(event) => field.onChange(event.target.checked)}
+              />
             )}
           />
           {errorMessage ? <Toast tone="danger">{errorMessage}</Toast> : null}

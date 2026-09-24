@@ -155,7 +155,12 @@ export function AdminSpotsPanel() {
         startWrite('spotCreate', null);
         await createSpot.mutateAsync(input);
       }}
-      onSave={async (input: { id: string; label: string; group: ParkingGroup }) => {
+      onSave={async (input: {
+        id: string;
+        label: string;
+        group: ParkingGroup;
+        evCharger?: boolean;
+      }) => {
         startWrite('spotRename', input.id);
         await updateSpot.mutateAsync(input);
       }}

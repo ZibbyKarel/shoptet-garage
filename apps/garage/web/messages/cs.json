@@ -230,6 +230,7 @@
     "spotsLabelField": "Štítek",
     "spotsLabelRequired": "Zadejte štítek místa.",
     "spotsGroupField": "Kategorie",
+    "spotsEvChargerField": "Nabíječka pro elektromobily",
     "spotsSave": "Uložit",
     "spotsCancel": "Zrušit",
     "spotsDuplicateLabel": "Místo s tímto štítkem už existuje.",

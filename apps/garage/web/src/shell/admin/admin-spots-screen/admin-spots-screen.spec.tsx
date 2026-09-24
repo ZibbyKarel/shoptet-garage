@@ -391,7 +391,28 @@ describe('AdminSpotsScreen', () => {
       await user.click(inDialog().getByRole('button', { name: 'spotsSave' }));
 
       await waitFor(() =>
-        expect(onCreate).toHaveBeenCalledWith({ label: 'E2.10', group: 'SHARED' })
+        expect(onCreate).toHaveBeenCalledWith({ label: 'E2.10', group: 'SHARED', evCharger: false })
+      );
+    });
+
+    it('offers the EV charger flag, off by default', async () => {
+      const { user } = renderScreen();
+
+      await user.click(screen.getByRole('button', { name: 'spotsAdd' }));
+
+      expect(inDialog().getByRole('checkbox', { name: 'spotsEvChargerField' })).not.toBeChecked();
+    });
+
+    it('sends the EV charger flag when it is ticked', async () => {
+      const { onCreate, user } = renderScreen();
+
+      await user.click(screen.getByRole('button', { name: 'spotsAdd' }));
+      await user.type(inDialog().getByLabelText('spotsLabelField'), 'E2.11');
+      await user.click(inDialog().getByRole('checkbox', { name: 'spotsEvChargerField' }));
+      await user.click(inDialog().getByRole('button', { name: 'spotsSave' }));
+
+      await waitFor(() =>
+        expect(onCreate).toHaveBeenCalledWith({ label: 'E2.11', group: 'IT', evCharger: true })
       );
     });
 
@@ -457,7 +478,32 @@ describe('AdminSpotsScreen', () => {
       await user.click(inDialog().getByRole('button', { name: 'spotsSave' }));
 
       await waitFor(() =>
-        expect(onSave).toHaveBeenCalledWith({ id: SHARED.id, label: 'E2.97', group: 'SHARED' })
+        expect(onSave).toHaveBeenCalledWith({
+          id: SHARED.id,
+          label: 'E2.97',
+          group: 'SHARED',
+          evCharger: SHARED.evCharger,
+        })
+      );
+    });
+
+    it("starts from the spot's current flag and saves it unchanged", async () => {
+      const CHARGED = aSpot({ id: 's6', label: 'E2.95', evCharger: true });
+      const { onSave, user } = renderScreen({ spots: [CHARGED] });
+
+      await user.click(within(rowOf(CHARGED)).getByRole('button', { name: 'spotsEdit' }));
+
+      expect(inDialog().getByRole('checkbox', { name: 'spotsEvChargerField' })).toBeChecked();
+
+      await user.click(inDialog().getByRole('button', { name: 'spotsSave' }));
+
+      await waitFor(() =>
+        expect(onSave).toHaveBeenCalledWith({
+          id: CHARGED.id,
+          label: 'E2.95',
+          group: CHARGED.group,
+          evCharger: true,
+        })
       );
     });
   });
