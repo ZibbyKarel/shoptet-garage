@@ -66,7 +66,8 @@ ALREADY_HAS_RESERVATION`. Above the queue branch on purpose: queueing
    somebody who already has a spot creates an entry that can never be promoted
    (one reservation per user per day), which is what `waitlist.join` refuses at
    the door.
-3. **No active spots at all** → `UNAVAILABLE / NO_SPOTS_AVAILABLE`.
+3. **No active, non-hidden spots at all** (`doc/decision/0316-*`) →
+   `UNAVAILABLE / NO_SPOTS_AVAILABLE`.
 4. **The preferred spot, if free** → `SPOT_ASSIGNED`, `isPreferredSpot: true`.
 5. **The first free spot** in canonical order → `SPOT_ASSIGNED`.
 6. **Otherwise the shortest queue** → `QUEUED`, with the position the user would
@@ -286,15 +287,15 @@ touches, and is dropped in a `finally`.
 
 ## What is a whole-request error and what is a per-day fact
 
-| condition                                       | result                                          |
-| ----------------------------------------------- | ----------------------------------------------- |
-| any selected day is in the past                 | `PAST_DATE` (everyone, admins included)         |
-| the month has not opened yet                    | `OUT_OF_HORIZON`                                |
-| the month is locked for this caller             | `RESERVATIONS_LOCKED` — an admin is exempt      |
-| the batch is empty or spans two calendar months | `VALIDATION_FAILED`                             |
-| weekend or Czech public holiday                 | per-day `UNAVAILABLE / NOT_A_BUSINESS_DAY`      |
-| the caller already holds a reservation that day | per-day `UNAVAILABLE / ALREADY_HAS_RESERVATION` |
-| no active spots exist                           | per-day `UNAVAILABLE / NO_SPOTS_AVAILABLE`      |
+| condition                                                 | result                                          |
+| --------------------------------------------------------- | ----------------------------------------------- |
+| any selected day is in the past                           | `PAST_DATE` (everyone, admins included)         |
+| the month has not opened yet                              | `OUT_OF_HORIZON`                                |
+| the month is locked for this caller                       | `RESERVATIONS_LOCKED` — an admin is exempt      |
+| the batch is empty or spans two calendar months           | `VALIDATION_FAILED`                             |
+| weekend or Czech public holiday                           | per-day `UNAVAILABLE / NOT_A_BUSINESS_DAY`      |
+| the caller already holds a reservation that day           | per-day `UNAVAILABLE / ALREADY_HAS_RESERVATION` |
+| no active, non-hidden spots exist (`doc/decision/0316-*`) | per-day `UNAVAILABLE / NO_SPOTS_AVAILABLE`      |
 
 The window is checked once for the **whole target month**, which is why a batch
 may not span two of them. The split between the two columns is the contract's,
