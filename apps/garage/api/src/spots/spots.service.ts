@@ -131,7 +131,7 @@ export class SpotsService implements OnModuleInit {
   }
 
   /**
-   * Changes a spot's label, group or activity.
+   * Changes a spot's label, group, activity, visibility or EV charger flag.
    *
    * Deactivating through here is the same operation as {@link deactivate} and is
    * held to the same rule — otherwise `update({ active: false })` would be a way

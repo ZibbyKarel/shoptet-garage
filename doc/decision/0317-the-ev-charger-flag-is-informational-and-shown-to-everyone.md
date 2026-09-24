@@ -10,8 +10,9 @@ the same mutation that sets `hidden` and the plain fields — and audited as
 `SPOT_UPDATED` with `evCharger` in the before/after snapshot.
 
 Unlike `hidden`, the flag carries no access rule at all: `parkingSpotSchema`
-includes it for every reader, on every path (`spot.list`, `overview.day`, the
-admin spots table), for admins and normal users alike. A green lightning-bolt
+includes it for every spot the reader can see (`spot.list`, `overview.day`, the
+admin spots table, for admins and normal users alike) — hidden spots stay
+filtered per 0316, independently of this flag. A green lightning-bolt
 glyph renders it wherever a spot tile is shown, with the accessible name
 "Nabíječka pro elektromobily".
 
@@ -32,8 +33,8 @@ glyph renders it wherever a spot tile is shown, with the accessible name
 
 ## Consequences
 
-- No realtime, no gateway filtering, no Slack digest change: nothing about
-  the flag needs a live update path beyond the ordinary `SPOT_UPDATED` /
-  `overview.day` refetch that any other field on the spot already gets.
+- No gateway filtering, no Slack digest change, no realtime event: other
+  viewers pick it up on their next `overview.day` fetch, as with every
+  other spot field.
 - A spot can be both hidden and charged; the two flags are independent and
   both render in the tile's corner without one hiding the other.

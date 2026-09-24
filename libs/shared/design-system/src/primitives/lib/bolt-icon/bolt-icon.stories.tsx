@@ -18,6 +18,8 @@ type Story = StoryObj<typeof BoltIcon>;
 
 export const Default: Story = {};
 
+export const Decorative: Story = { args: { label: undefined } };
+
 export const Sizes: Story = {
   render: (args) => (
     <div className="flex items-center gap-3">

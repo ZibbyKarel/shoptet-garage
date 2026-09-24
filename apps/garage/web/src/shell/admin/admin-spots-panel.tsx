@@ -30,9 +30,12 @@ export function AdminSpotsPanel() {
   /**
    * Which write was asked for last.
    *
-   * `admin.spot.update` backs three of them and its `CONFLICT` means something
+   * `admin.spot.update` backs several of them — rename, retire, revive,
+   * visibility, and the EV charger flag — and its `CONFLICT` means something
    * different in each — a duplicate label when renaming, a spot somebody still
-   * holds when switching one off, and nothing at all when switching one on. The
+   * holds when switching one off, and nothing at all when switching one on.
+   * For visibility and the EV charger flag, both non-committing toggles,
+   * `CONFLICT` is as meaningless as it is for switching a spot back on. The
    * response cannot say which was intended, so the intent is recorded when the
    * call is made. See `./admin-errors.ts`.
    */
