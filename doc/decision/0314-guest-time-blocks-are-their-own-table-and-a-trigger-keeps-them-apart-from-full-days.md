@@ -14,10 +14,11 @@ one full-day `Reservation` **or** any number of non-overlapping
 `TimedReservation` blocks, never both — enforced by a `CHECK` on the block's
 own range plus a pair of database triggers across both tables, not by
 application code. `admin.timedReservation.*` sits under `admin` in the
-router with `@Roles('ADMIN')`, and both procedures run the same window/day
+router with `@Roles('ADMIN')`, and `.create` runs the same window/day
 eligibility guard `reservation.create` does
 (`ReservationPolicy.assertMayTakeDay`), so the admin window exemption applies
-here too.
+there too; `.cancel` runs no such guard, exactly like `reservation.cancel` —
+deleting a block is never blocked by a closed or not-yet-open month.
 
 ## Why a separate table rather than nullable times on `Reservation`
 
@@ -48,8 +49,13 @@ reservation needs:
 A new table costs a second read path (`day-overview.service.ts` runs a third
 query and merges it in) and a second write path
 (`TimedReservationsService`), but every one of the eleven existing readers of
-`Reservation` keeps meaning exactly what it always meant, unchanged and
-unaudited.
+`Reservation` keeps meaning exactly what it always meant, unchanged. The
+Slack daily digest (`SlackNotificationService.collectDailySummary`) is the
+one exception, and it was not unchanged on first ship: it listed a
+guest-blocked spot as free, because "free" was computed only from the
+absence of a `Reservation` row. It now also reads `TimedReservation` for the
+day and excludes those spots' labels too — see the fix recorded against this
+branch's final review.
 
 ## Why triggers, and why they raise `unique_violation`
 

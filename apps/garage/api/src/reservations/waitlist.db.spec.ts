@@ -152,6 +152,30 @@ describe('the waitlist against a real PostgreSQL', () => {
       ).resolves.toBe('SPOT_NOT_OCCUPIED');
     });
 
+    it('refuses a spot that only carries guest time blocks, with an accurate message', async () => {
+      const [user, spot] = [await seedUser(client), await seedSpot(client)];
+      await client.timedReservation.create({
+        data: {
+          parkingSpotId: spot.id,
+          date: toDateColumn(FUTURE_BUSINESS_DAY),
+          startMinute: 9 * 60,
+          endMinute: 10 * 60,
+          guestName: 'Guest',
+        },
+      });
+
+      const joining = harness.waitlist.join(
+        { parkingSpotId: spot.id, date: FUTURE_BUSINESS_DAY },
+        actorFor(user),
+        TODAY
+      );
+
+      await expect(codeOf(joining)).resolves.toBe('SPOT_NOT_OCCUPIED');
+      await expect(joining).rejects.toMatchObject({
+        message: expect.stringContaining('guest time blocks'),
+      });
+    });
+
     it('refuses the holder’s own spot', async () => {
       const { spot, holder } = await occupiedSpot();
 

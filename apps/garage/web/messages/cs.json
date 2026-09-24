@@ -170,6 +170,7 @@
     "dayColumnQueue": "Fronta",
     "dayStatusFree": "Volné",
     "dayStatusTaken": "Obsazeno — {name}",
+    "dayStatusTimed": "Rezervováno pro hosty: {times}",
     "dayQueueCount": "{count} ve frontě",
     "dayQueueNone": "Nikdo nečeká",
     "dayEmpty": "Na parkovišti nejsou žádná aktivní místa",

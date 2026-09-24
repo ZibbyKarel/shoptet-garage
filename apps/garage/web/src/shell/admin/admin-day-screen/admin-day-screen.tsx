@@ -30,6 +30,7 @@ import { DataTable } from '@garage/design-system/compounds';
 import type { DataTableColumn } from '@garage/design-system/compounds';
 import { useDateFormatters, useTranslations } from '@garage/i18n';
 import type { DateOnly } from '@garage/i18n';
+import { formatTimeRange } from '../../../lot/lot-view';
 import { ScreenDataGuard } from '../../screen-state/screen-state';
 import type { ScreenData } from '../../screen-state/screen-state';
 import { WindowBanner } from '../window-banner/window-banner';
@@ -81,18 +82,18 @@ export function AdminDayScreen({ date, day, onRetry, onOpenLot }: AdminDayScreen
     {
       id: 'status',
       header: t('dayColumnStatus'),
-      // Free sorts before taken, and taken rows sort by holder — a plain
-      // boolean would put every occupied spot in one undifferentiated block.
+      // Free sorts first, then a spot with guest blocks but no full-day
+      // reservation, then taken rows sorted by holder — a plain boolean
+      // would put every occupied-or-blocked spot in one undifferentiated
+      // block.
       sortValue: (row) =>
-        row.reservation === null
-          ? ''
-          : `1 ${row.reservation.holder.name.toLocaleLowerCase('cs-CZ')}`,
+        row.reservation !== null
+          ? `2 ${row.reservation.holder.name.toLocaleLowerCase('cs-CZ')}`
+          : row.timedReservations.length > 0
+            ? '1'
+            : '',
       cell: (row) =>
-        row.reservation === null ? (
-          <Text as="span" tone="subtle">
-            {t('dayStatusFree')}
-          </Text>
-        ) : (
+        row.reservation !== null ? (
           // The `ml-2` on the hand-rolled guest tag was the gap between the
           // holder's name and the tag next to it — a row `Stack` with that
           // same gap replaces both the margin and the tag's own markup.
@@ -104,6 +105,16 @@ export function AdminDayScreen({ date, day, onRetry, onOpenLot }: AdminDayScreen
               </Badge>
             ) : null}
           </Stack>
+        ) : row.timedReservations.length > 0 ? (
+          <Text as="span">
+            {t('dayStatusTimed', {
+              times: row.timedReservations.map((block) => formatTimeRange(block)).join(', '),
+            })}
+          </Text>
+        ) : (
+          <Text as="span" tone="subtle">
+            {t('dayStatusFree')}
+          </Text>
         ),
     },
     {
@@ -125,7 +136,9 @@ export function AdminDayScreen({ date, day, onRetry, onOpenLot }: AdminDayScreen
   return (
     <ScreenDataGuard state={day} onRetry={onRetry} headingLevel={3}>
       {(overview) => {
-        const free = overview.spots.filter((row) => row.reservation === null).length;
+        const free = overview.spots.filter(
+          (row) => row.reservation === null && row.timedReservations.length === 0
+        ).length;
         const taken = overview.spots.length - free;
 
         return (

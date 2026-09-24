@@ -170,6 +170,7 @@
     "dayColumnQueue": "Queue",
     "dayStatusFree": "Free",
     "dayStatusTaken": "Taken — {name}",
+    "dayStatusTimed": "Booked for guests: {times}",
     "dayQueueCount": "{count} in the queue",
     "dayQueueNone": "Nobody is waiting",
     "dayEmpty": "There are no active spots in the parking lot",

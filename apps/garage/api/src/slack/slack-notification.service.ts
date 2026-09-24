@@ -145,11 +145,14 @@ export class SlackNotificationService {
    * spots rather than by a `NOT EXISTS` query, because the message lists the
    * free spots by **label** in the same order the lot screen does
    * (`SpotsService.listActive`), and re-deriving that order in SQL would be a
-   * second definition of it.
+   * second definition of it. Guest time blocks (`TimedReservation`,
+   * `doc/decision/0314-*`) make a spot unavailable for a full day too, even
+   * though the cell has no `Reservation` row, so they are subtracted the same
+   * way.
    */
   private async collectDailySummary(date: DateOnly): Promise<DailySummary> {
     const dateColumn = toDateColumn(date);
-    const [spots, reservations, waitingCount] = await Promise.all([
+    const [spots, reservations, timedReservations, waitingCount] = await Promise.all([
       this.prisma.client.parkingSpot.findMany({
         where: { active: true },
         orderBy: { label: 'asc' },
@@ -159,14 +162,20 @@ export class SlackNotificationService {
         where: { date: dateColumn },
         select: { parkingSpotId: true },
       }),
+      this.prisma.client.timedReservation.findMany({
+        where: { date: dateColumn },
+        select: { parkingSpotId: true },
+      }),
       this.prisma.client.waitlistEntry.count({ where: { date: dateColumn } }),
     ]);
 
-    const reservedSpotIds = new Set(reservations.map((row) => row.parkingSpotId));
+    const unavailableSpotIds = new Set(
+      [...reservations, ...timedReservations].map((row) => row.parkingSpotId)
+    );
     return {
       date,
       totalSpots: spots.length,
-      freeSpotLabels: spots.filter((spot) => !reservedSpotIds.has(spot.id)).map((s) => s.label),
+      freeSpotLabels: spots.filter((spot) => !unavailableSpotIds.has(spot.id)).map((s) => s.label),
       waitingCount,
     };
   }
