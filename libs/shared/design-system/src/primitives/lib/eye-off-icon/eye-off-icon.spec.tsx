@@ -35,6 +35,19 @@ describe('EyeOffIcon', () => {
     expect(container.querySelector('svg')).toHaveClass('size-4', 'fill-none', 'stroke-neutral-0');
   });
 
+  it('renders a title when a label is given', () => {
+    const { container } = render(<EyeOffIcon label="Skryté" />);
+
+    const title = container.querySelector('svg > title');
+    expect(title).toHaveTextContent('Skryté');
+  });
+
+  it('renders no title without a label', () => {
+    const { container } = render(<EyeOffIcon />);
+
+    expect(container.querySelector('title')).not.toBeInTheDocument();
+  });
+
   it('passes attributes and caller classes through', () => {
     const { container } = render(<EyeOffIcon className="custom-class" data-testid="eye" />);
 

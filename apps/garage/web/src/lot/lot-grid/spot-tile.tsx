@@ -283,8 +283,7 @@ export function SpotTile({ spot, onOpen, onAdminOpen }: SpotTileProps) {
 
       {spot.hidden || spot.showAdminMenu ? (
         <Box placement="top-right">
-          <Stack direction="row" align="center" spacing={1}>
-            {spot.hidden ? <EyeOffIcon label={t('hiddenSpot')} /> : null}
+          <Stack direction="column" align="center" spacing={1}>
             {spot.showAdminMenu ? (
               <button
                 type="button"
@@ -298,6 +297,7 @@ export function SpotTile({ spot, onOpen, onAdminOpen }: SpotTileProps) {
                 ⋯
               </button>
             ) : null}
+            {spot.hidden ? <EyeOffIcon label={t('hiddenSpot')} /> : null}
           </Stack>
         </Box>
       ) : null}

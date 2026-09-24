@@ -44,6 +44,7 @@ export function EyeOffIcon({ size = 'sm', label, className, ...rest }: EyeOffIco
       strokeLinecap="round"
       strokeLinejoin="round"
     >
+      {label === undefined ? null : <title>{label}</title>}
       <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
       <circle cx="12" cy="12" r="3" />
       <path d="M3 3l18 18" />
