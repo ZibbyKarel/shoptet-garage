@@ -38,6 +38,7 @@ export const parkingSpotFixture = {
   label: 'E2.92',
   group: 'SHARED',
   active: true,
+  hidden: false,
   createdAt: TIMESTAMP,
   updatedAt: TIMESTAMP,
 };

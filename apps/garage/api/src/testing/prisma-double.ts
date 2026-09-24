@@ -160,6 +160,7 @@ export interface SpotSeed {
   label: string;
   group?: ParkingSpotRow['group'];
   active?: boolean;
+  hidden?: boolean;
 }
 
 export interface UserSeed {
@@ -286,6 +287,7 @@ export class PrismaDouble {
       label: seed.label,
       group: seed.group ?? 'SHARED',
       active: seed.active ?? true,
+      hidden: seed.hidden ?? false,
       createdAt: EPOCH,
       updatedAt: EPOCH,
     };
@@ -398,7 +400,7 @@ export class PrismaDouble {
     return {
       findMany: async (
         args: {
-          where?: { active?: boolean; group?: ParkingSpotRow['group'] };
+          where?: { active?: boolean; hidden?: boolean; group?: ParkingSpotRow['group'] };
           orderBy?: unknown;
           /**
            * Accepted and deliberately ignored: the double returns whole rows
@@ -411,12 +413,13 @@ export class PrismaDouble {
           select?: unknown;
         } = {}
       ) => {
-        const { active, group, ...rest } = args.where ?? {};
+        const { active, hidden, group, ...rest } = args.where ?? {};
         if (Object.keys(rest).length > 0) {
           return unsupported('this parking spot filter', args.where);
         }
         const rows = this.spots
           .filter((row) => active === undefined || row.active === active)
+          .filter((row) => hidden === undefined || row.hidden === hidden)
           .filter((row) => group === undefined || row.group === group);
         return sortedSpots(rows, args.orderBy).map(copy);
       },
@@ -437,7 +440,7 @@ export class PrismaDouble {
       },
       update: async (args: {
         where: { id: string };
-        data: Partial<Pick<ParkingSpotRow, 'label' | 'group' | 'active'>>;
+        data: Partial<Pick<ParkingSpotRow, 'label' | 'group' | 'active' | 'hidden'>>;
       }) => {
         const row = this.spots.find((candidate) => candidate.id === args.where.id);
         if (row === undefined) {

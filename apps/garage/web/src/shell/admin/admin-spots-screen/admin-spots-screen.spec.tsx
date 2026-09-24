@@ -17,6 +17,7 @@ function aSpot(overrides: Partial<ParkingSpot> & { id: string; label: string }):
   return {
     group: 'IT',
     active: true,
+    hidden: false,
     createdAt: TIMESTAMP,
     updatedAt: TIMESTAMP,
     ...overrides,

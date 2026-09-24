@@ -110,6 +110,9 @@ model ParkingSpot {
   label     String       @unique
   group     ParkingGroup
   active    Boolean      @default(true)
+  /// Seen and booked by admins only (`doc/decision/0316-hidden-spots-are-seen-and-booked-by-admins-only`).
+  /// Not a retirement: a hidden spot stays bookable by an admin, for anybody.
+  hidden    Boolean      @default(false)
   createdAt DateTime     @default(now()) @db.Timestamptz(3)
   updatedAt DateTime     @updatedAt @db.Timestamptz(3)
 

@@ -264,6 +264,7 @@ describe('parkingSpotSchema', () => {
     label: 'E2.92',
     group: 'IT',
     active: true,
+    hidden: false,
     createdAt: NOW,
     updatedAt: NOW,
   };

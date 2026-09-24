@@ -148,12 +148,13 @@ export async function seedUser(
  */
 export async function seedSpot(
   client: PrismaClient,
-  overrides: { labelPrefix?: string; group?: SpotRow['group'] } = {}
+  overrides: { labelPrefix?: string; group?: SpotRow['group']; hidden?: boolean } = {}
 ): Promise<SpotRow> {
   return client.parkingSpot.create({
     data: {
       label: unique(overrides.labelPrefix ?? 'SPOT'),
       group: overrides.group ?? 'SHARED',
+      hidden: overrides.hidden ?? false,
     },
   });
 }

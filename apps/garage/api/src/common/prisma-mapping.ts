@@ -90,6 +90,7 @@ export function toContractSpot(row: ParkingSpotRow): ParkingSpot {
     label: row.label,
     group: row.group,
     active: row.active,
+    hidden: row.hidden,
     createdAt: toTimestamp(row.createdAt),
     updatedAt: toTimestamp(row.updatedAt),
   };

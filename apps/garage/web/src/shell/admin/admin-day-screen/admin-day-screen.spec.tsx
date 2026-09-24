@@ -18,6 +18,7 @@ function aSpotRow(
       label,
       group: 'IT',
       active: true,
+      hidden: false,
       createdAt: TIMESTAMP,
       updatedAt: TIMESTAMP,
     },

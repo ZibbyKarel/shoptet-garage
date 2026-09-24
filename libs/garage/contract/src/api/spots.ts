@@ -2,8 +2,9 @@
  * Parking spots: one read for everybody, four admin mutations.
  *
  * The plain `spot.list` exists because normal users need it too — the settings
- * screen has to offer a picker for `preferredParkingSpotId`. It returns active
- * spots only and takes no filters; everything richer is admin-only.
+ * screen has to offer a picker for `preferredParkingSpotId`. It returns active,
+ * visible spots only — never a hidden one, for anybody — and takes no filters;
+ * everything richer is admin-only.
  */
 
 import * as z from 'zod';
@@ -17,7 +18,7 @@ export const spotListOutputSchema = z.object({
 });
 export type SpotListOutput = z.infer<typeof spotListOutputSchema>;
 
-/** Active spots, for pickers and labels. No input: no filters, no paging. */
+/** Active, non-hidden spots, for pickers and labels. No input: no filters, no paging. */
 export const listSpotsContract = authed.input(noInputSchema).output(spotListOutputSchema);
 
 export const adminListSpotsInputSchema = z.object({
@@ -32,7 +33,7 @@ export const adminListSpotsContract = authed
   .input(adminListSpotsInputSchema)
   .output(spotListOutputSchema);
 
-/** `id`, `active`, `createdAt` and `updatedAt` are the server's to assign. */
+/** `id`, `active`, `hidden`, `createdAt` and `updatedAt` are the server's to assign — a new spot is always active and visible. */
 export const createSpotInputSchema = parkingSpotSchema.pick({
   label: true,
   group: true,
@@ -53,7 +54,7 @@ export const createSpotContract = authed
  * can be cleared, so no `null` has a meaning.
  */
 export const updateSpotInputSchema = parkingSpotSchema
-  .pick({ label: true, group: true, active: true })
+  .pick({ label: true, group: true, active: true, hidden: true })
   .partial()
   .extend({ id: idSchema });
 export type UpdateSpotInput = z.infer<typeof updateSpotInputSchema>;

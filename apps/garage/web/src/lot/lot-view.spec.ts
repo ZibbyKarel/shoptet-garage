@@ -29,6 +29,7 @@ function spotRow(overrides: Partial<DaySpotOverview> = {}): DaySpotOverview {
       label: 'E2.92',
       group: 'IT',
       active: true,
+      hidden: false,
       createdAt: '2026-08-01T00:00:00.000Z',
       updatedAt: '2026-08-01T00:00:00.000Z',
     },
