@@ -28,6 +28,7 @@ function spot(overrides: Partial<SpotView> = {}): SpotView {
     viewerWaitlistPosition: null,
     showAdminMenu: false,
     hidden: false,
+    evCharger: false,
     holderIsGuest: false,
     infoReason: null,
     timedBlocks: [],
@@ -266,6 +267,26 @@ describe('LotGrid', () => {
   it('draws no waitlist pill for an empty queue', () => {
     renderGrid([group([spot({ waitlistCount: 0 })])]);
     expect(screen.queryByText(/ve frontě/u)).not.toBeInTheDocument();
+  });
+
+  it('draws the EV charger mark, named, beside the bay rather than inside its button', () => {
+    renderGrid([group([spot({ evCharger: true })])]);
+
+    const bolt = screen.getByRole('img', { name: 'evCharger' });
+    expect(bolt.closest('button')).toBeNull();
+    // The bay's own name is untouched — the mark has its own place in the reading order.
+    expect(screen.getByRole('button')).toHaveAccessibleName('reserveSpotAction: label=E2.92, free');
+  });
+
+  it('draws no charger mark on a bay without one', () => {
+    renderGrid([group([spot()])]);
+    expect(screen.queryByRole('img', { name: 'evCharger' })).not.toBeInTheDocument();
+  });
+
+  it('draws the charger mark and the hidden badge together', () => {
+    renderGrid([group([spot({ evCharger: true, hidden: true })])]);
+    expect(screen.getByRole('img', { name: 'evCharger' })).toBeInTheDocument();
+    expect(screen.getByText('hiddenSpot')).toBeInTheDocument();
   });
 
   it('draws a timed bay with its blocks, capped at two lines plus a count', () => {

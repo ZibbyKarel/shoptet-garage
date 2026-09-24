@@ -113,6 +113,9 @@ model ParkingSpot {
   /// Seen and booked by admins only (`doc/decision/0316-hidden-spots-are-seen-and-booked-by-admins-only`).
   /// Not a retirement: a hidden spot stays bookable by an admin, for anybody.
   hidden    Boolean      @default(false)
+  /// Has a charger for electric cars. Informational only, shown to everybody
+  /// (`doc/decision/0317-the-ev-charger-flag-is-informational-and-shown-to-everyone`).
+  evCharger Boolean      @default(false)
   createdAt DateTime     @default(now()) @db.Timestamptz(3)
   updatedAt DateTime     @updatedAt @db.Timestamptz(3)
 

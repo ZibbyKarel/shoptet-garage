@@ -265,6 +265,7 @@ describe('parkingSpotSchema', () => {
     group: 'IT',
     active: true,
     hidden: false,
+    evCharger: false,
     createdAt: NOW,
     updatedAt: NOW,
   };

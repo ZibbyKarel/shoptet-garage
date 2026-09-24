@@ -156,6 +156,7 @@ describe('useAdminWriteError', () => {
         ['spotRetire', declaredOn(contract.admin.spot.deactivate)],
         ['spotRevive', declaredOn(contract.admin.spot.update)],
         ['spotVisibility', declaredOn(contract.admin.spot.update)],
+        ['spotEvCharger', declaredOn(contract.admin.spot.update)],
         ['windowUpdate', declaredOn(contract.admin.window.update)],
       ];
 
@@ -172,6 +173,9 @@ describe('useAdminWriteError', () => {
         // Hiding or unhiding sends neither a label nor a group and runs no
         // commitment check (`SpotsService.update`), so neither code has a cause.
         spotVisibility: ['CONFLICT', 'VALIDATION_FAILED'],
+        // Setting the charger flag sends neither a label nor a group and runs
+        // no commitment check (`SpotsService.update`), so neither code has a cause.
+        spotEvCharger: ['CONFLICT', 'VALIDATION_FAILED'],
       };
 
       for (const [write, codes] of expectations) {

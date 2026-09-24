@@ -28,6 +28,7 @@ export function spot(overrides: Partial<SpotView> = {}): SpotView {
     viewerWaitlistPosition: null,
     showAdminMenu: false,
     hidden: false,
+    evCharger: false,
     holderIsGuest: false,
     infoReason: null,
     timedBlocks: [],

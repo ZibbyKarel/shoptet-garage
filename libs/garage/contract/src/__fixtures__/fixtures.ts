@@ -39,6 +39,7 @@ export const parkingSpotFixture = {
   group: 'SHARED',
   active: true,
   hidden: false,
+  evCharger: false,
   createdAt: TIMESTAMP,
   updatedAt: TIMESTAMP,
 };

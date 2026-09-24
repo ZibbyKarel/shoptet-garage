@@ -127,7 +127,16 @@ async function contractFailure(code: ErrorCode): Promise<unknown> {
 const PREFERRED_SPOT_ID = 'spot-preferred';
 
 function spot(id: string, label: string): ParkingSpot {
-  return { id, label, group: 'IT', active: true, hidden: false, createdAt: T0, updatedAt: T0 };
+  return {
+    id,
+    label,
+    group: 'IT',
+    active: true,
+    hidden: false,
+    evCharger: false,
+    createdAt: T0,
+    updatedAt: T0,
+  };
 }
 
 /**

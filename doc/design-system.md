@@ -448,6 +448,16 @@ translucent | translucent-light`), `fontSize`, `weight`, `leading?: 'none'`.
 `--fg-on-green` – the latter measured 1.88:1 on `--brand-green` (see
 `doc/decision/0311-*`). Decorative by default (`aria-hidden`).
 
+### `BoltIcon`
+
+A lightning bolt, drawn as an SVG. `size` is `sm` (16px, the default) or `md`
+(20px). `label` makes it an image with that accessible name; without a label
+it is decorative (`aria-hidden`). It has a green fill (`--brand-green`) and a
+dark outline (`--brand-dark`): the fill is what clears 3:1 on the lot asphalt,
+and the outline is what clears it on white. `contrast.spec.tsx` pins both.
+The web app uses it for the EV-charger mark
+(`doc/decision/0317-the-ev-charger-flag-is-informational-and-shown-to-everyone`).
+
 ### `ToggleTile`
 
 One option of a selected/selectable-unselected/not-interactive button group –

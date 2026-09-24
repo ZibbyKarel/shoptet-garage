@@ -91,6 +91,7 @@ export function toContractSpot(row: ParkingSpotRow): ParkingSpot {
     group: row.group,
     active: row.active,
     hidden: row.hidden,
+    evCharger: row.evCharger,
     createdAt: toTimestamp(row.createdAt),
     updatedAt: toTimestamp(row.updatedAt),
   };

@@ -4,6 +4,7 @@ import { COLOR_UTILITIES } from '@garage/design-system/tokens';
 
 import { Avatar, type AvatarTone } from './avatar/avatar';
 import { Badge, type BadgeTone } from './badge/badge';
+import { BoltIcon } from './bolt-icon/bolt-icon';
 import { Button, type ButtonVariant } from './button/button';
 import { Callout, type CalloutTone } from './callout/callout';
 import { Chip, type ChipTone } from './chip/chip';
@@ -552,6 +553,27 @@ describe('colour contrast of the pairings this lib chooses', () => {
       const link = screen.getByRole('link', { name: 'Zpět na parkoviště' });
 
       expect(isExempt(link)).toBe(true);
+    });
+  });
+
+  describe('BoltIcon', () => {
+    /** WCAG 2.1 SC 1.4.11: a graphic that carries information needs 3:1 against its surroundings. */
+    const NON_TEXT = 3;
+
+    it('stays visible on the lot asphalt through its fill and on a white surface through its outline', () => {
+      render(<BoltIcon label="Nabíječka" />);
+      // An SVG's `className` is an `SVGAnimatedString`, so read the attribute.
+      const classes = (
+        screen.getByRole('img', { name: 'Nabíječka' }).getAttribute('class') ?? ''
+      ).split(/\s+/);
+      const tokenAfter = (prefix: string) =>
+        classes
+          .filter((cls) => cls.startsWith(prefix))
+          .map((cls) => cls.slice(prefix.length))
+          .find((token) => token in COLOR_UTILITIES) ?? `no ${prefix}* colour`;
+
+      expect(ratioOf(tokenAfter('fill-'), 'neutral-600')).toBeGreaterThanOrEqual(NON_TEXT);
+      expect(ratioOf(tokenAfter('stroke-'), 'bg')).toBeGreaterThanOrEqual(NON_TEXT);
     });
   });
 });

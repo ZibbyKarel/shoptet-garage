@@ -118,8 +118,8 @@ describe('SpotsService', () => {
 
       expect(double.auditLogs[0]?.payload).toEqual({
         change: 'updated',
-        before: { label: 'A1', group: 'SHARED', active: true, hidden: false },
-        after: { label: 'A1', group: 'IT', active: true, hidden: false },
+        before: { label: 'A1', group: 'SHARED', active: true, hidden: false, evCharger: false },
+        after: { label: 'A1', group: 'IT', active: true, hidden: false, evCharger: false },
       });
     });
 
@@ -181,6 +181,45 @@ describe('SpotsService', () => {
 
       expect(spots.isHidden(hidden.id)).toBe(true);
       expect(spots.isHidden(seen.id)).toBe(false);
+    });
+  });
+
+  describe('the EV charger flag', () => {
+    it('sets and clears the flag, and audits it', async () => {
+      const spot = double.seedSpot({ label: 'A1' });
+
+      await expect(
+        spots.update({ id: spot.id, evCharger: true }, 'admin-1')
+      ).resolves.toMatchObject({ evCharger: true, active: true, hidden: false });
+
+      await spots.update({ id: spot.id, evCharger: false }, 'admin-1');
+      expect(double.spots[0]?.evCharger).toBe(false);
+      expect(double.auditLogs.at(-1)?.payload).toMatchObject({
+        change: 'updated',
+        before: { evCharger: true },
+        after: { evCharger: false },
+      });
+    });
+
+    it('refuses nothing: it succeeds while somebody holds the spot from today on', async () => {
+      const spot = double.seedSpot({ label: 'A1' });
+      const user = double.seedUser();
+      double.seedReservation({ parkingSpotId: spot.id, userId: user.id, date: TODAY });
+      double.seedWaitlistEntry({ parkingSpotId: spot.id, userId: user.id, date: '2026-09-10' });
+
+      await expect(
+        spots.update({ id: spot.id, evCharger: true }, 'admin-1')
+      ).resolves.toMatchObject({ evCharger: true });
+    });
+
+    it('leaves a hidden spot hidden', async () => {
+      const spot = double.seedSpot({ label: 'SECRET', hidden: true });
+      await spots.onModuleInit();
+
+      await expect(
+        spots.update({ id: spot.id, evCharger: true }, 'admin-1')
+      ).resolves.toMatchObject({ hidden: true, evCharger: true });
+      expect(spots.isHidden(spot.id)).toBe(true);
     });
   });
 

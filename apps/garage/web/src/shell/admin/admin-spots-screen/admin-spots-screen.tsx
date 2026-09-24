@@ -32,6 +32,13 @@
  * Unlike the activity switch it collides with nothing, so it has no conflict
  * copy of its own.
  *
+ * ## "Nabíječka" is information only
+ *
+ * The EV-charger switch changes no booking rule and collides with nothing, so
+ * like "Skryté" it has no conflict copy of its own. The bolt next to the label
+ * is the same mark the lot draws, and it carries the same accessible name
+ * (`doc/decision/0317-the-ev-charger-flag-is-informational-and-shown-to-everyone`).
+ *
  * Presentational: `../admin-spots-panel.tsx` is the connected half.
  */
 
@@ -39,6 +46,7 @@ import { useState } from 'react';
 import type { CreateSpotInput, ParkingGroup, ParkingSpot, SpotListOutput } from '@garage/contract';
 import {
   Badge,
+  BoltIcon,
   Button,
   Select,
   Stack,
@@ -87,6 +95,8 @@ export interface AdminSpotsScreenProps {
   readonly onActiveChange: (id: string, active: boolean) => void;
   /** Inline "Skryté" switch. Fire-and-forget, like `onActiveChange`. */
   readonly onHiddenChange: (id: string, hidden: boolean) => void;
+  /** Inline "Nabíječka" switch. Fire-and-forget, like `onActiveChange`. */
+  readonly onEvChargerChange: (id: string, evCharger: boolean) => void;
   /** Resolves when the spot is retired; rejects to keep the dialog open. */
   readonly onDeactivate: (id: string) => Promise<void>;
   /**
@@ -121,6 +131,7 @@ export function AdminSpotsScreen({
   onSave,
   onActiveChange,
   onHiddenChange,
+  onEvChargerChange,
   onDeactivate,
   pendingSpotId,
   isSaving,
@@ -173,6 +184,7 @@ export function AdminSpotsScreen({
           <Text as="span" weight="bold">
             {spot.label}
           </Text>
+          {spot.evCharger ? <BoltIcon label={tLot('evCharger')} /> : null}
           {spot.active ? null : <Badge tone="neutral">{t('spotsInactive')}</Badge>}
           {spot.hidden ? <Badge tone="neutral">{t('spotsHidden')}</Badge> : null}
         </Stack>
@@ -260,6 +272,19 @@ export function AdminSpotsScreen({
           aria-label={t('spotsHiddenToggleLabel', { label: spot.label })}
           disabled={pendingSpotId === spot.id}
           onCheckedChange={(next) => onHiddenChange(spot.id, next)}
+        />
+      ),
+    },
+    {
+      id: 'evCharger',
+      header: t('spotsColumnEvCharger'),
+      width: '110px',
+      cell: (spot) => (
+        <Switch
+          checked={spot.evCharger}
+          aria-label={t('spotsEvChargerToggleLabel', { label: spot.label })}
+          disabled={pendingSpotId === spot.id}
+          onCheckedChange={(next) => onEvChargerChange(spot.id, next)}
         />
       ),
     },

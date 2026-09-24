@@ -89,6 +89,7 @@ type SpotUpdatedPayload =
       readonly group: ParkingGroup;
       readonly active: boolean;
       readonly hidden: boolean;
+      readonly evCharger: boolean;
     }>)
   | { readonly change: 'deactivated'; readonly label: string };
 

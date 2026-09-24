@@ -33,7 +33,7 @@ export const adminListSpotsContract = authed
   .input(adminListSpotsInputSchema)
   .output(spotListOutputSchema);
 
-/** `id`, `active`, `hidden`, `createdAt` and `updatedAt` are the server's to assign — a new spot is always active and visible. */
+/** `id`, `active`, `hidden`, `evCharger`, `createdAt` and `updatedAt` are the server's to assign — a new spot is always active, visible and without a charger. */
 export const createSpotInputSchema = parkingSpotSchema.pick({
   label: true,
   group: true,
@@ -54,7 +54,7 @@ export const createSpotContract = authed
  * can be cleared, so no `null` has a meaning.
  */
 export const updateSpotInputSchema = parkingSpotSchema
-  .pick({ label: true, group: true, active: true, hidden: true })
+  .pick({ label: true, group: true, active: true, hidden: true, evCharger: true })
   .partial()
   .extend({ id: idSchema });
 export type UpdateSpotInput = z.infer<typeof updateSpotInputSchema>;

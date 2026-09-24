@@ -30,6 +30,7 @@ function spotRow(overrides: Partial<DaySpotOverview> = {}): DaySpotOverview {
       group: 'IT',
       active: true,
       hidden: false,
+      evCharger: false,
       createdAt: '2026-08-01T00:00:00.000Z',
       updatedAt: '2026-08-01T00:00:00.000Z',
     },
@@ -264,6 +265,13 @@ describe('toSpotView', () => {
     expect(toSpotView(hidden, context({ isAdmin: true })).hidden).toBe(true);
     expect(toSpotView(hidden, context({ isAdmin: false })).hidden).toBe(false);
     expect(toSpotView(spotRow(), context({ isAdmin: true })).hidden).toBe(false);
+  });
+
+  it('marks a spot with a charger for everybody, admin or not', () => {
+    const charged = spotRow({ spot: { ...spotRow().spot, evCharger: true } });
+    expect(toSpotView(charged, context({ isAdmin: false })).evCharger).toBe(true);
+    expect(toSpotView(charged, context({ isAdmin: true })).evCharger).toBe(true);
+    expect(toSpotView(spotRow(), context({ isAdmin: false })).evCharger).toBe(false);
   });
 
   it('carries the waitlist through in every appearance', () => {

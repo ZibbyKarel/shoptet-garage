@@ -64,6 +64,7 @@ erDiagram
         ParkingGroup group "IT | SHARED"
         boolean active
         boolean hidden "admins only"
+        boolean evCharger "informational"
         timestamptz createdAt
         timestamptz updatedAt
     }

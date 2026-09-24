@@ -2,6 +2,7 @@
 
 import {
   Badge,
+  BoltIcon,
   Box,
   IconCircle,
   INSET_FOCUS_RING,
@@ -264,11 +265,19 @@ export function SpotTile({ spot, onOpen, onAdminOpen }: SpotTileProps) {
         ) : null}
       </button>
 
-      {spot.hidden ? (
+      {spot.evCharger || spot.hidden ? (
+        // A sibling of the bay's button, like the waitlist pill: the bolt has
+        // its own accessible name and its own place in the reading order, so
+        // the button's `accessibleName` above stays exactly what it was.
         <Box placement="top-left" interactive="none">
-          <Badge size="sm" tone="neutral">
-            {t('hiddenSpot')}
-          </Badge>
+          <Stack direction="row" align="center" spacing={1}>
+            {spot.evCharger ? <BoltIcon label={t('evCharger')} /> : null}
+            {spot.hidden ? (
+              <Badge size="sm" tone="neutral">
+                {t('hiddenSpot')}
+              </Badge>
+            ) : null}
+          </Stack>
         </Box>
       ) : null}
 

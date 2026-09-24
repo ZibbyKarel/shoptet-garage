@@ -18,6 +18,7 @@ function aSpot(overrides: Partial<ParkingSpot> & { id: string; label: string }):
     group: 'IT',
     active: true,
     hidden: false,
+    evCharger: false,
     createdAt: TIMESTAMP,
     updatedAt: TIMESTAMP,
     ...overrides,
@@ -26,7 +27,7 @@ function aSpot(overrides: Partial<ParkingSpot> & { id: string; label: string }):
 
 const TAKEN = aSpot({ id: 's1', label: 'E2.92' });
 const FREE = aSpot({ id: 's2', label: 'E2.93' });
-const SHARED = aSpot({ id: 's3', label: 'E2.96', group: 'SHARED' });
+const SHARED = aSpot({ id: 's3', label: 'E2.96', group: 'SHARED', evCharger: true });
 const RETIRED = aSpot({ id: 's4', label: 'E2.99', active: false });
 const HIDDEN = aSpot({ id: 's5', label: 'E2.98', hidden: true });
 
@@ -56,6 +57,7 @@ function makeProps({ spots, spotsState, ...overrides }: Overrides = {}) {
     onSave: jest.fn<Promise<void>, [unknown]>().mockResolvedValue(undefined),
     onActiveChange: jest.fn(),
     onHiddenChange: jest.fn(),
+    onEvChargerChange: jest.fn(),
     onDeactivate: jest.fn<Promise<void>, [string]>().mockResolvedValue(undefined),
     onDiscardFailure: jest.fn(),
   };
@@ -321,6 +323,51 @@ describe('AdminSpotsScreen', () => {
       ).toBeDisabled();
       expect(
         within(rowOf(FREE)).getByRole('switch', { name: 'spotsHiddenToggleLabel: label=E2.93' })
+      ).toBeEnabled();
+    });
+  });
+
+  describe('the EV charger switch', () => {
+    it('marks a spot with a charger, and reports the state it moved to', async () => {
+      const { onEvChargerChange, user } = renderScreen();
+
+      expect(within(rowOf(SHARED)).getByRole('img', { name: 'evCharger' })).toBeInTheDocument();
+      expect(
+        within(rowOf(TAKEN)).queryByRole('img', { name: 'evCharger' })
+      ).not.toBeInTheDocument();
+      expect(
+        within(rowOf(SHARED)).getByRole('switch', {
+          name: 'spotsEvChargerToggleLabel: label=E2.96',
+        })
+      ).toBeChecked();
+
+      await user.click(
+        within(rowOf(TAKEN)).getByRole('switch', {
+          name: 'spotsEvChargerToggleLabel: label=E2.92',
+        })
+      );
+      expect(onEvChargerChange).toHaveBeenLastCalledWith(TAKEN.id, true);
+
+      await user.click(
+        within(rowOf(SHARED)).getByRole('switch', {
+          name: 'spotsEvChargerToggleLabel: label=E2.96',
+        })
+      );
+      expect(onEvChargerChange).toHaveBeenLastCalledWith(SHARED.id, false);
+    });
+
+    it('freezes only the row being written', () => {
+      renderScreen({ pendingSpotId: TAKEN.id });
+
+      expect(
+        within(rowOf(TAKEN)).getByRole('switch', {
+          name: 'spotsEvChargerToggleLabel: label=E2.92',
+        })
+      ).toBeDisabled();
+      expect(
+        within(rowOf(FREE)).getByRole('switch', {
+          name: 'spotsEvChargerToggleLabel: label=E2.93',
+        })
       ).toBeEnabled();
     });
   });

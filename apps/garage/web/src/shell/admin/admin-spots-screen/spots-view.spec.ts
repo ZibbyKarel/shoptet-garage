@@ -13,6 +13,7 @@ function aSpot(overrides: Partial<ParkingSpot> = {}): ParkingSpot {
     group: 'IT',
     active: true,
     hidden: false,
+    evCharger: false,
     createdAt: '2026-08-01T00:00:00.000Z',
     updatedAt: '2026-08-01T00:00:00.000Z',
     ...overrides,
@@ -71,6 +72,8 @@ describe('shouldShowFailureIn', () => {
     expect(shouldShowFailureIn('spotRevive', 'delete', 'dialog')).toBe(false);
     expect(shouldShowFailureIn('spotVisibility', null, 'table')).toBe(true);
     expect(shouldShowFailureIn('spotVisibility', 'edit', 'dialog')).toBe(false);
+    expect(shouldShowFailureIn('spotEvCharger', null, 'table')).toBe(true);
+    expect(shouldShowFailureIn('spotEvCharger', 'edit', 'dialog')).toBe(false);
   });
 
   it('shows nothing at all for a write that never reaches this screen', () => {
