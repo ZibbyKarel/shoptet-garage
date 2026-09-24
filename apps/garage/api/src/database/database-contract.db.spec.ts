@@ -712,6 +712,176 @@ describe('what PostgreSQL actually does', () => {
       }
     });
 
+    /**
+     * The mirror of the case above, and the one that pins the "Reservation"
+     * trigger being AFTER: the full-day row is inserted and its trigger has
+     * taken the lock *after* the row exists, uncommitted. The block's BEFORE
+     * trigger cannot see that row, so it must be parked on the lock — and then
+     * see the committed row and lose.
+     */
+    it('a full-day reservation vs. a block, concurrently: the block waits and loses', async () => {
+      const spot = await prisma.parkingSpot.create({
+        data: { label: unique('SPOT'), group: 'IT' },
+      });
+      const user = await prisma.user.create({
+        data: {
+          email: `${unique('user')}@example.test`,
+          name: 'Database contract fixture',
+          oktaId: unique('okta'),
+          icsToken: unique('ics'),
+        },
+      });
+      try {
+        const holdsLock = resolvable();
+        const releaseT1 = resolvable();
+
+        const t1 = prisma.$transaction(
+          async (tx) => {
+            await tx.reservation.create({
+              data: { parkingSpotId: spot.id, userId: user.id, date: DATE },
+            });
+            holdsLock.resolve();
+            await releaseT1.promise;
+          },
+          { maxWait: 10_000, timeout: 30_000 }
+        );
+
+        await holdsLock.promise;
+
+        // Dispatched by the `.catch()` — see the first concurrency case.
+        const t2 = block(prisma, spot.id, 540, 600);
+        void t2.catch(() => {
+          // Handled via `outcomes` below; this only exists to trigger dispatch.
+        });
+
+        const sawBlockedLock = await waitUntilAdvisoryLockIsBlocked();
+        releaseT1.resolve();
+        expect(sawBlockedLock).toBe(true);
+
+        const outcomes = await Promise.allSettled([t1, t2]);
+        expect(outcomes[0]?.status).toBe('fulfilled');
+        expect(outcomes[1]?.status).toBe('rejected');
+
+        const known = (outcomes[1] as PromiseRejectedResult)
+          .reason as Prisma.PrismaClientKnownRequestError;
+        expect(mapPrismaErrorCode(known)).toBe('SPOT_ALREADY_RESERVED');
+        expect(known.meta).toMatchObject({
+          driverAdapterError: {
+            cause: { constraint: { index: 'TimedReservation_spot_day_conflict' } },
+          },
+        });
+      } finally {
+        await prisma.timedReservation.deleteMany({ where: { parkingSpotId: spot.id } });
+        await prisma.reservation.deleteMany({ where: { parkingSpotId: spot.id } });
+        await prisma.parkingSpot.delete({ where: { id: spot.id } });
+        await prisma.user.delete({ where: { id: user.id } });
+      }
+    });
+
+    /**
+     * A cancellation with a promotion, reduced to its two statements: T1
+     * deletes a cell's reservation and re-inserts one for somebody else, and a
+     * create for the same cell arrives in between.
+     *
+     * The create waits on T1's deleted-but-uncommitted entry in the
+     * `(parkingSpotId, date)` unique index, then loses to T1's new row with an
+     * ordinary unique violation. When the "Reservation" trigger was BEFORE, the
+     * create took the spot-day lock before reaching the index, T1's re-insert
+     * then waited on that lock, and the pair deadlocked (`40P01` → `CONFLICT`)
+     * — the regression `waitlist-concurrency.db.spec.ts` caught through the
+     * service. This case forces the interleaving instead of racing for it.
+     */
+    it('a create arriving between a delete and a re-insert of the same cell loses cleanly, without a deadlock', async () => {
+      const spot = await prisma.parkingSpot.create({
+        data: { label: unique('SPOT'), group: 'IT' },
+      });
+      const users = [];
+      for (let index = 0; index < 3; index += 1) {
+        users.push(
+          await prisma.user.create({
+            data: {
+              email: `${unique('user')}@example.test`,
+              name: 'Database contract fixture',
+              oktaId: unique('okta'),
+              icsToken: unique('ics'),
+            },
+          })
+        );
+      }
+      const [holder, promoted, latecomer] = users as [
+        (typeof users)[number],
+        (typeof users)[number],
+        (typeof users)[number],
+      ];
+      try {
+        const existing = await prisma.reservation.create({
+          data: { parkingSpotId: spot.id, userId: holder.id, date: DATE },
+        });
+
+        const deleted = resolvable();
+        const releaseT1 = resolvable();
+        const t1 = prisma.$transaction(
+          async (tx) => {
+            await tx.reservation.delete({ where: { id: existing.id } });
+            deleted.resolve();
+            await releaseT1.promise;
+            await tx.reservation.create({
+              data: { parkingSpotId: spot.id, userId: promoted.id, date: DATE },
+            });
+          },
+          { maxWait: 10_000, timeout: 30_000 }
+        );
+
+        await deleted.promise;
+
+        const t2 = prisma.reservation.create({
+          data: { parkingSpotId: spot.id, userId: latecomer.id, date: DATE },
+        });
+        void t2.catch(() => {
+          // Handled via `outcomes` below; this only exists to trigger dispatch.
+        });
+
+        // The create is parked on T1's transaction (the index entry), not on
+        // anything advisory. Release T1 either way, so a failure cannot leave
+        // it open.
+        let sawBlocked = false;
+        const deadline = Date.now() + 5000;
+        while (!sawBlocked && Date.now() < deadline) {
+          const rows = await prisma.$queryRaw<{ count: number }[]>`
+            SELECT count(*)::int AS count FROM pg_locks WHERE locktype = 'transactionid' AND NOT granted
+          `;
+          sawBlocked = (rows[0]?.count ?? 0) > 0;
+          if (!sawBlocked) {
+            await new Promise((resolve) => setTimeout(resolve, 20));
+          }
+        }
+        releaseT1.resolve();
+        expect(sawBlocked).toBe(true);
+
+        const outcomes = await Promise.allSettled([t1, t2]);
+        expect(outcomes[0]?.status).toBe('fulfilled');
+        expect(outcomes[1]?.status).toBe('rejected');
+
+        const known = (outcomes[1] as PromiseRejectedResult)
+          .reason as Prisma.PrismaClientKnownRequestError;
+        // `P2002`, not `P2034`: no deadlock, no write conflict.
+        expect(known.code).toBe('P2002');
+        expect(mapPrismaErrorCode(known)).toBe('SPOT_ALREADY_RESERVED');
+        expect(known.meta).toMatchObject({
+          driverAdapterError: {
+            cause: { constraint: { index: 'Reservation_parkingSpotId_date_key' } },
+          },
+        });
+
+        const current = await prisma.reservation.findMany({ where: { parkingSpotId: spot.id } });
+        expect(current.map((row) => row.userId)).toEqual([promoted.id]);
+      } finally {
+        await prisma.reservation.deleteMany({ where: { parkingSpotId: spot.id } });
+        await prisma.parkingSpot.delete({ where: { id: spot.id } });
+        await prisma.user.deleteMany({ where: { id: { in: users.map((user) => user.id) } } });
+      }
+    });
+
     it('isTimedReservationConflict is true for the two triggers and false for the plain Reservation collision', async () => {
       const timedBlockError = await rejectedBy(prisma, async (tx) => {
         const spot = await seedSpot(tx);

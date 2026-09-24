@@ -398,13 +398,22 @@ describe('two bulk bookings at once', () => {
       // half-written batch, no queue entry for a day it says it holds.
       await assertResultMatchesDatabase(bulkOutcome.value, booker.id);
 
+      // Counted on the contested spot only. Spots are global in this database,
+      // so when another suite has run first (Jest runs previously failed files
+      // first, too) the retry finds a free spot elsewhere and assigns it — a
+      // total across all spots then says nothing about the cycle, and this case
+      // failed with `2` below whenever it ran after a suite that seeds spots.
       const heldByBooker = await client.reservation.count({
-        where: { userId: booker.id, date: { in: DEADLOCK_DAYS.map(toDateColumn) } },
+        where: {
+          userId: booker.id,
+          parkingSpotId: spotId,
+          date: { in: DEADLOCK_DAYS.map(toDateColumn) },
+        },
       });
 
       if (competitorOutcome.status === 'fulfilled') {
         // The confirmation was the victim; its retry found both cells taken and
-        // queued the booker for them instead. Both days or neither — never one.
+        // queued the booker for them, or placed them elsewhere. Never on X.
         expect(heldByBooker).toBe(0);
       } else {
         // The competitor was the victim; the confirmation's first attempt stood.

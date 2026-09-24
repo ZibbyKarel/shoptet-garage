@@ -32,7 +32,8 @@ ALTER TABLE "TimedReservation" ADD CONSTRAINT "TimedReservation_range_check"
 -- One (spot, day) is either one full-day "Reservation" or any number of
 -- non-overlapping "TimedReservation" blocks — never both. Two tables cannot
 -- share a unique index, so the rule is two triggers serialised by one
--- transaction-scoped advisory lock per (spot, day). READ COMMITTED gives every
+-- transaction-scoped advisory lock per (spot, day) — BEFORE on
+-- "TimedReservation", AFTER on "Reservation" (why, below). READ COMMITTED gives every
 -- statement inside the function a fresh snapshot, so the EXISTS below runs
 -- after the lock is granted and sees whatever the previous holder committed.
 --
@@ -81,12 +82,27 @@ BEGIN
     RAISE EXCEPTION 'Spot % has timed guest reservations on %', NEW."parkingSpotId", NEW."date"
       USING ERRCODE = 'unique_violation', CONSTRAINT = 'Reservation_timed_reservation_conflict';
   END IF;
-  RETURN NEW;
+  RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
 
+-- AFTER, not BEFORE, on purpose: a "Reservation" writer must meet the unique
+-- index `(parkingSpotId, date)` *before* it takes the spot-day lock, so the
+-- lock order is always row-then-advisory — the order a cancellation already
+-- has, since its DELETE holds the old row's index entry when its promotion's
+-- INSERT reaches this trigger. As BEFORE, a create racing a cancellation took
+-- the lock, then waited on the cancellation's deleted-but-uncommitted index
+-- entry, while the promotion inside that cancellation waited on the lock:
+-- `40P01` and `CONFLICT` instead of the SPOT_ALREADY_RESERVED it answered
+-- before this migration (`waitlist-concurrency.db.spec.ts`). As AFTER, the
+-- create waits on the index exactly as it did before, and a Reservation writer
+-- only ever takes the lock once its cell is uncontended by other Reservations.
+-- Correctness is unchanged: the row is already inserted (uncommitted) when the
+-- lock is taken, and the TimedReservation side — which does not see that row —
+-- must wait for this lock before its EXISTS, so it sees the committed row. An
+-- `INSERT … ON CONFLICT DO NOTHING` also no longer takes locks for rows it skips.
 CREATE TRIGGER "reservation_reject_timed_conflict"
-  BEFORE INSERT OR UPDATE OF "parkingSpotId", "date" ON "Reservation"
+  AFTER INSERT OR UPDATE OF "parkingSpotId", "date" ON "Reservation"
   FOR EACH ROW EXECUTE FUNCTION "reservation_reject_timed_conflict"();
 
 -- Two new audit actions (Task 2's contract addition). `ADD VALUE IF NOT

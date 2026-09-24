@@ -154,7 +154,12 @@ A spot-day is one full-day `Reservation` **or** any number of non-overlapping
 `TimedReservation` blocks, never both — the two triggers above enforce it
 across both tables, serialised by a transaction-scoped advisory lock per
 `(parkingSpotId, date)` (`lock_spot_day`) so the exclusivity check under
-READ COMMITTED sees a consistent picture. See `doc/decision/0314-*`.
+READ COMMITTED sees a consistent picture. The `Reservation` trigger is
+`AFTER`, not `BEFORE`: a `Reservation` writer meets the `(parkingSpotId, date)`
+unique index first and only then takes the lock, so a create racing a
+cancellation's promotion waits on the index and loses with
+`SPOT_ALREADY_RESERVED`, as it did before the lock existed, instead of
+deadlocking against it. See `doc/decision/0314-*`.
 
 Additional indexes: `Reservation(date)` and `WaitlistEntry(date)` (the daily
 parking-lot overview), `WaitlistEntry(parkingSpotId, date, createdAt, id)`
