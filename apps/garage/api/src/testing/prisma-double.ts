@@ -434,11 +434,19 @@ export class PrismaDouble {
         );
         return row === undefined ? null : copy(row);
       },
-      create: async (args: { data: { label: string; group: ParkingSpotRow['group'] } }) => {
+      create: async (args: {
+        data: { label: string; group: ParkingSpotRow['group']; evCharger?: boolean };
+      }) => {
         if (this.spots.some((row) => row.label === args.data.label)) {
           throw uniqueViolation('ParkingSpot', 'label');
         }
-        return copy(this.seedSpot({ label: args.data.label, group: args.data.group }));
+        return copy(
+          this.seedSpot({
+            label: args.data.label,
+            group: args.data.group,
+            ...(args.data.evCharger === undefined ? {} : { evCharger: args.data.evCharger }),
+          })
+        );
       },
       update: async (args: {
         where: { id: string };

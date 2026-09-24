@@ -83,7 +83,12 @@ type UserUpdatedPayload =
 
 /** `SPOT_UPDATED` likewise covers create, edit and retire. */
 type SpotUpdatedPayload =
-  | { readonly change: 'created'; readonly label: string; readonly group: ParkingGroup }
+  | {
+      readonly change: 'created';
+      readonly label: string;
+      readonly group: ParkingGroup;
+      readonly evCharger: boolean;
+    }
   | ({ readonly change: 'updated' } & Change<{
       readonly label: string;
       readonly group: ParkingGroup;

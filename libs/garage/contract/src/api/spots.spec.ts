@@ -59,16 +59,26 @@ describe('createSpotInputSchema', () => {
     expect(createSpotInputSchema.parse(valid)).toEqual(valid);
   });
 
-  it('does not let the client set id, active, hidden or evCharger', () => {
+  it('does not let the client set id, active or hidden', () => {
     expect(
       createSpotInputSchema.parse({
         ...valid,
         id: UUID_B,
         active: false,
         hidden: true,
-        evCharger: true,
       })
     ).toEqual(valid);
+  });
+
+  it('accepts an EV charger flag', () => {
+    expect(createSpotInputSchema.parse({ ...valid, evCharger: true })).toEqual({
+      ...valid,
+      evCharger: true,
+    });
+  });
+
+  it('rejects a non-boolean EV charger flag', () => {
+    expect(createSpotInputSchema.safeParse({ ...valid, evCharger: 'yes' }).success).toBe(false);
   });
 
   it('rejects an empty label and a missing group', () => {

@@ -16,7 +16,7 @@ describe('AuditLogService', () => {
       action: 'SPOT_UPDATED',
       entityType: 'ParkingSpot',
       entityId: 'spot-1',
-      payload: { change: 'created', label: 'E2.92', group: 'IT' },
+      payload: { change: 'created', label: 'E2.92', group: 'IT', evCharger: false },
     });
 
     expect(double.auditLogs).toHaveLength(1);
@@ -25,7 +25,7 @@ describe('AuditLogService', () => {
       action: 'SPOT_UPDATED',
       entityType: 'ParkingSpot',
       entityId: 'spot-1',
-      payload: { change: 'created', label: 'E2.92', group: 'IT' },
+      payload: { change: 'created', label: 'E2.92', group: 'IT', evCharger: false },
     });
   });
 

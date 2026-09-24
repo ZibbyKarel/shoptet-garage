@@ -87,9 +87,29 @@ describe('SpotsService', () => {
           action: 'SPOT_UPDATED',
           entityType: 'ParkingSpot',
           entityId: created.id,
-          payload: { change: 'created', label: 'E2.92', group: 'IT' },
+          payload: { change: 'created', label: 'E2.92', group: 'IT', evCharger: false },
         }),
       ]);
+    });
+
+    it('stores the EV charger flag when one is sent', async () => {
+      const created = await spots.create(
+        { label: 'E2.93', group: 'IT', evCharger: true },
+        'admin-1'
+      );
+
+      expect(created).toMatchObject({ label: 'E2.93', evCharger: true });
+      expect(double.auditLogs).toEqual([
+        expect.objectContaining({
+          payload: { change: 'created', label: 'E2.93', group: 'IT', evCharger: true },
+        }),
+      ]);
+    });
+
+    it('defaults to no charger when the flag is omitted', async () => {
+      const created = await spots.create({ label: 'E2.94', group: 'IT' }, 'admin-1');
+
+      expect(created.evCharger).toBe(false);
     });
 
     it('lets the unique index reject a duplicate label', async () => {
