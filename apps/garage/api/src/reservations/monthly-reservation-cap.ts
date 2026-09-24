@@ -5,7 +5,9 @@
  * how much of the month somebody has used. The *cap* is an admin setting — the
  * `ReservationLimitSettings` singleton (`doc/decision/0312-*`) — and every path
  * that inserts a `Reservation` row for a real user (never a guest — a guest has
- * no `userId`, so no budget applies) loads it with
+ * no `userId`, so no budget applies) **while the cap is in force**
+ * (`isMonthlyCapInForce` in `@garage/shared-types`: `AUTO` and today inside the
+ * target month's window — `doc/decision/0315-*`) loads it with
  * {@link readMonthlyReservationCap} and passes it to
  * `assertWithinMonthlyReservationCap`, which runs as the last check before the
  * insert, inside the same transaction that will do the insert.

@@ -65,11 +65,17 @@ import type {
   MonthReservations,
   MyMonthReservationsInput,
   MyMonthReservationsOutput,
+  ReservationWindowSettings,
 } from '@garage/contract';
 import type { Prisma } from '@garage/database';
 import { Prisma as PrismaNamespace } from '@garage/database';
 import type { DateOnly, YearMonth } from '@garage/shared-types';
-import { endOfMonth, startOfYearMonth, todayInPrague } from '@garage/shared-types';
+import {
+  endOfMonth,
+  isMonthlyCapInForce,
+  startOfYearMonth,
+  todayInPrague,
+} from '@garage/shared-types';
 import { AuditLogService } from '../audit/audit-log.service';
 import { ReservationLimitsService } from '../reservation-limits/reservation-limits.service';
 import type { AuthenticatedUser } from '../auth/authenticated-user';
@@ -158,6 +164,15 @@ export class ReservationsService {
     this.policy.assertMayNameHolder(input.holder, actor);
     this.policy.assertMayTakeDay(input.date, actor, settings, today);
 
+    // Same settings snapshot as the window check above, so one request is never
+    // judged "open" under one lock mode and "capped" under another.
+    const capInForce = isMonthlyCapInForce(
+      input.date,
+      settings.openDaysBefore,
+      settings.lockMode,
+      today
+    );
+
     const spot = await this.prisma.client.parkingSpot.findUnique({
       where: { id: input.parkingSpotId },
       select: { id: true, active: true },
@@ -180,7 +195,7 @@ export class ReservationsService {
     // a reservation nobody can account for is exactly what the audit log exists
     // to prevent. No locks are taken and no queue is read, so this is short.
     const reservation = await this.prisma.client.$transaction(async (tx) => {
-      if (holder.kind === 'USER') {
+      if (holder.kind === 'USER' && capInForce) {
         const cap = await readMonthlyReservationCap(tx);
         await assertWithinMonthlyReservationCap(tx, holder.userId, input.date, 1, cap);
       }
@@ -333,12 +348,18 @@ export class ReservationsService {
    * including in a locked month, and the promotion that follows is a system
    * action which the window never applied to either. That is not an omission,
    * it is why `cancelReservationContract` declares no window errors at all.
+   * The window settings are still read — once, before the retry loop —
+   * because the promotion's monthly cap applies only while the cap is in
+   * force (`isMonthlyCapInForce`).
    */
   async cancel(
     input: CancelReservationInput,
-    actor: AuthenticatedUser
+    actor: AuthenticatedUser,
+    today: DateOnly = todayInPrague()
   ): Promise<CancelReservationOutput> {
-    const outcome = await this.committedCancel(input, actor);
+    // Outside the retry loop: one cancellation, one reading of the window.
+    const settings = await this.window.getSettings();
+    const outcome = await this.committedCancel(input, actor, settings, today);
 
     // Past `await`, so past `COMMIT` — and deliberately outside the retry loop.
     // Nothing above this line may talk to Slack or Socket.io; nothing below it
@@ -352,12 +373,14 @@ export class ReservationsService {
   /** {@link cancel}'s transaction, retried. Returns only once something committed. */
   private async committedCancel(
     input: CancelReservationInput,
-    actor: AuthenticatedUser
+    actor: AuthenticatedUser,
+    settings: ReservationWindowSettings,
+    today: DateOnly
   ): Promise<CancelOutcome> {
     for (let attempt = 1; ; attempt += 1) {
       try {
         return await this.prisma.client.$transaction(
-          (tx) => this.cancelOnce(tx, input, actor),
+          (tx) => this.cancelOnce(tx, input, actor, settings, today),
           RESERVATION_TRANSACTION_OPTIONS
         );
       } catch (error) {
@@ -375,7 +398,9 @@ export class ReservationsService {
   private async cancelOnce(
     tx: Prisma.TransactionClient,
     input: CancelReservationInput,
-    actor: AuthenticatedUser
+    actor: AuthenticatedUser,
+    settings: ReservationWindowSettings,
+    today: DateOnly
   ): Promise<CancelOutcome> {
     // Locked, not merely read: two requests cancelling the same reservation must
     // not both go on to promote. The loser blocks here, then finds the row gone.
@@ -416,7 +441,14 @@ export class ReservationsService {
       tx
     );
 
-    const promotion = await this.promotion.promote(tx, reservation.parkingSpotId, date, actor.id);
+    const capInForce = isMonthlyCapInForce(date, settings.openDaysBefore, settings.lockMode, today);
+    const promotion = await this.promotion.promote(
+      tx,
+      reservation.parkingSpotId,
+      date,
+      actor.id,
+      capInForce
+    );
 
     const cell = { date, parkingSpotId: reservation.parkingSpotId };
     if (promotion === null) {

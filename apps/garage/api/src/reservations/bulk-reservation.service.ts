@@ -122,7 +122,13 @@ import type { CellRef } from '@garage/contract/realtime';
 import type { Prisma } from '@garage/database';
 import { Prisma as PrismaNamespace } from '@garage/database';
 import type { DateOnly } from '@garage/shared-types';
-import { compareDateOnly, todayInPrague, toYearMonth } from '@garage/shared-types';
+import {
+  compareDateOnly,
+  isMonthlyCapInForce,
+  startOfYearMonth,
+  todayInPrague,
+  toYearMonth,
+} from '@garage/shared-types';
 import type { AuditEntry } from '../audit/audit-log.service';
 import { AuditLogService } from '../audit/audit-log.service';
 import type { AuthenticatedUser } from '../auth/authenticated-user';
@@ -280,8 +286,15 @@ export class BulkReservationService {
     const settings = await this.window.getSettings();
     this.assertRequestable(input.dates, actor, settings, today);
     const month = this.monthOf(input.dates);
+    // One month per batch (`monthOf`), so one answer for every day in it.
+    const capInForce = isMonthlyCapInForce(
+      startOfYearMonth(month),
+      settings.openDaysBefore,
+      settings.lockMode,
+      today
+    );
 
-    const outcome = await this.committedConfirm(input.dates, month, actor, holderId);
+    const outcome = await this.committedConfirm(input.dates, month, actor, holderId, capInForce);
 
     // Past `await`, so past `COMMIT` — and deliberately outside the retry loop.
     // Nothing above this line may talk to Slack or Socket.io. There are no
@@ -334,12 +347,13 @@ export class BulkReservationService {
     dates: readonly DateOnly[],
     month: string,
     actor: AuthenticatedUser,
-    holderId: string
+    holderId: string,
+    capInForce: boolean
   ): Promise<ConfirmOutcome> {
     for (let attempt = 1; ; attempt += 1) {
       try {
         return await this.prisma.client.$transaction(
-          (tx) => this.confirmOnce(tx, dates, month, actor, holderId),
+          (tx) => this.confirmOnce(tx, dates, month, actor, holderId, capInForce),
           RESERVATION_TRANSACTION_OPTIONS
         );
       } catch (error) {
@@ -377,13 +391,14 @@ export class BulkReservationService {
     dates: readonly DateOnly[],
     month: string,
     actor: AuthenticatedUser,
-    holderId: string
+    holderId: string,
+    capInForce: boolean
   ): Promise<ConfirmOutcome> {
     const world = await this.readWorld(tx, dates, holderId);
     const plans = this.allocate(dates, world, holderId);
 
     const assignedCount = plans.filter((plan) => plan.outcome === 'SPOT_ASSIGNED').length;
-    if (assignedCount > 0) {
+    if (capInForce && assignedCount > 0) {
       const [firstDate] = dates;
       if (firstDate === undefined) {
         throw new DomainError('VALIDATION_FAILED', {

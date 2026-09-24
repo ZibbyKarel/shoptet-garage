@@ -529,6 +529,46 @@ describe('reservations against a real PostgreSQL', () => {
       expect(stillFree).toBeNull();
     });
 
+    it('does not cap a user once the month is running under AUTO', async () => {
+      const user = await seedUser(client);
+      const spots = await Promise.all(Array.from({ length: 6 }, () => seedSpot(client)));
+      const dates = businessDaysInMonth(FUTURE_BUSINESS_DAY, 6);
+      // "Today" is the first of those days: January 2099 has begun, its
+      // window is over, and the cap with it.
+      const runningMonthToday = FUTURE_BUSINESS_DAY;
+
+      for (const [i, date] of dates.entries()) {
+        const spot = spots[i];
+        if (spot === undefined) {
+          throw new Error('unreachable: six spots for six dates');
+        }
+        await harness.reservations.create(
+          { parkingSpotId: spot.id, date },
+          actorFor(user),
+          runningMonthToday
+        );
+      }
+
+      expect(await client.reservation.count({ where: { userId: user.id } })).toBe(6);
+    });
+
+    it('does not cap a user under FORCE_OPEN', async () => {
+      await setLockMode(client, 'FORCE_OPEN');
+      const user = await seedUser(client);
+      const spots = await Promise.all(Array.from({ length: 6 }, () => seedSpot(client)));
+      const dates = businessDaysInMonth(FUTURE_BUSINESS_DAY, 6);
+
+      for (const [i, date] of dates.entries()) {
+        const spot = spots[i];
+        if (spot === undefined) {
+          throw new Error('unreachable: six spots for six dates');
+        }
+        await harness.reservations.create({ parkingSpotId: spot.id, date }, actorFor(user), TODAY);
+      }
+
+      expect(await client.reservation.count({ where: { userId: user.id } })).toBe(6);
+    });
+
     it('does not cap a guest reservation, which has no userId', async () => {
       const admin = await seedUser(client);
       const spots = await Promise.all(Array.from({ length: 6 }, () => seedSpot(client)));
@@ -931,9 +971,11 @@ describe('reservations against a real PostgreSQL', () => {
         TODAY
       );
 
+      // `TODAY` is inside January 2099's window, where the cap applies.
       const result = await harness.reservations.cancel(
         { reservationId: reservation.id },
-        actorFor(holder)
+        actorFor(holder),
+        TODAY
       );
 
       expect(result.promoted).toBe(true);
@@ -947,6 +989,56 @@ describe('reservations against a real PostgreSQL', () => {
       expect(
         await client.waitlistEntry.findUnique({ where: { id: cappedEntry.entry.id } })
       ).not.toBeNull();
+    });
+
+    it('promotes a waiter who is over the cap once the month is running', async () => {
+      const [holder, capped, spot] = [
+        await seedUser(client),
+        await seedUser(client),
+        await seedSpot(client),
+      ];
+      const dates = businessDaysInMonth(FUTURE_BUSINESS_DAY, 6);
+      const otherSpots = await Promise.all(Array.from({ length: 5 }, () => seedSpot(client)));
+      const targetDate = dates[0];
+      if (targetDate === undefined) {
+        throw new Error('unreachable: businessDaysInMonth(FUTURE_BUSINESS_DAY, 6) has 6 entries');
+      }
+
+      // `capped` already holds 5 reservations elsewhere this month.
+      for (let i = 1; i <= 5; i++) {
+        const otherSpot = otherSpots[i - 1];
+        const date = dates[i];
+        if (otherSpot === undefined || date === undefined) {
+          throw new Error('unreachable: fixed-length arrays covered by the loop bound');
+        }
+        await client.reservation.create({
+          data: { parkingSpotId: otherSpot.id, userId: capped.id, date: toDateColumn(date) },
+        });
+      }
+
+      const reservation = await harness.reservations.create(
+        { parkingSpotId: spot.id, date: targetDate },
+        actorFor(holder),
+        TODAY
+      );
+      await harness.waitlist.join(
+        { parkingSpotId: spot.id, date: targetDate },
+        actorFor(capped),
+        TODAY
+      );
+
+      // The spot is given back on the day itself: the month is running.
+      const result = await harness.reservations.cancel(
+        { reservationId: reservation.id },
+        actorFor(holder),
+        targetDate
+      );
+
+      expect(result.promoted).toBe(true);
+      const promoted = await client.reservation.findUniqueOrThrow({
+        where: { parkingSpotId_date: { parkingSpotId: spot.id, date: toDateColumn(targetDate) } },
+      });
+      expect(promoted.userId).toBe(capped.id);
     });
 
     it('leaves the spot free when every waiter is blocked', async () => {
