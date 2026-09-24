@@ -25,6 +25,13 @@ describe('spotListOutputSchema', () => {
         .success
     ).toBe(false);
   });
+
+  it('requires the evCharger flag on every spot', () => {
+    expect(
+      spotListOutputSchema.safeParse({ spots: [{ ...parkingSpotFixture, evCharger: undefined }] })
+        .success
+    ).toBe(false);
+  });
 });
 
 describe('adminListSpotsInputSchema', () => {
@@ -52,9 +59,15 @@ describe('createSpotInputSchema', () => {
     expect(createSpotInputSchema.parse(valid)).toEqual(valid);
   });
 
-  it('does not let the client set id, active or hidden', () => {
+  it('does not let the client set id, active, hidden or evCharger', () => {
     expect(
-      createSpotInputSchema.parse({ ...valid, id: UUID_B, active: false, hidden: true })
+      createSpotInputSchema.parse({
+        ...valid,
+        id: UUID_B,
+        active: false,
+        hidden: true,
+        evCharger: true,
+      })
     ).toEqual(valid);
   });
 
@@ -91,6 +104,14 @@ describe('updateSpotInputSchema', () => {
       hidden: true,
     });
     expect(updateSpotInputSchema.safeParse({ id: UUID_B, hidden: 'yes' }).success).toBe(false);
+  });
+
+  it('accepts setting and clearing the EV charger flag', () => {
+    expect(updateSpotInputSchema.parse({ id: UUID_B, evCharger: true })).toEqual({
+      id: UUID_B,
+      evCharger: true,
+    });
+    expect(updateSpotInputSchema.safeParse({ id: UUID_B, evCharger: 'yes' }).success).toBe(false);
   });
 });
 

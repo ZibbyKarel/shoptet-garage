@@ -18,6 +18,7 @@ function aSpot(overrides: Partial<ParkingSpot> & { id: string; label: string }):
     group: 'IT',
     active: true,
     hidden: false,
+    evCharger: false,
     createdAt: TIMESTAMP,
     updatedAt: TIMESTAMP,
     ...overrides,

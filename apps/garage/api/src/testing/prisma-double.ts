@@ -161,6 +161,7 @@ export interface SpotSeed {
   group?: ParkingSpotRow['group'];
   active?: boolean;
   hidden?: boolean;
+  evCharger?: boolean;
 }
 
 export interface UserSeed {
@@ -288,6 +289,7 @@ export class PrismaDouble {
       group: seed.group ?? 'SHARED',
       active: seed.active ?? true,
       hidden: seed.hidden ?? false,
+      evCharger: seed.evCharger ?? false,
       createdAt: EPOCH,
       updatedAt: EPOCH,
     };
@@ -440,7 +442,7 @@ export class PrismaDouble {
       },
       update: async (args: {
         where: { id: string };
-        data: Partial<Pick<ParkingSpotRow, 'label' | 'group' | 'active' | 'hidden'>>;
+        data: Partial<Pick<ParkingSpotRow, 'label' | 'group' | 'active' | 'hidden' | 'evCharger'>>;
       }) => {
         const row = this.spots.find((candidate) => candidate.id === args.where.id);
         if (row === undefined) {

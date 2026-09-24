@@ -1078,6 +1078,7 @@ export const ParkingSpotScalarFieldEnum = {
   group: 'group',
   active: 'active',
   hidden: 'hidden',
+  evCharger: 'evCharger',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

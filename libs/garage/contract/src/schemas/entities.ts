@@ -75,6 +75,13 @@ export const parkingSpotSchema = z.object({
    * independent. `doc/decision/0316-hidden-spots-are-seen-and-booked-by-admins-only`.
    */
   hidden: z.boolean(),
+  /**
+   * The spot has a charger for electric cars. Informational only: every
+   * viewer sees it (the lot tile's green bolt), and nothing about reserving,
+   * bulk booking, the waitlist or the cap reads it.
+   * `doc/decision/0317-the-ev-charger-flag-is-informational-and-shown-to-everyone`.
+   */
+  evCharger: z.boolean(),
   createdAt: timestampSchema,
   updatedAt: timestampSchema,
 });

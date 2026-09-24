@@ -138,7 +138,8 @@ export class SpotsService implements OnModuleInit {
    * around the check, which is how a spot ends up retired with people still
    * holding reservations for it. Hiding (`hidden`) is deliberately *not* held
    * to that rule: a hidden spot is still bookable by an admin and still shown
-   * to whoever holds it.
+   * to whoever holds it. The EV charger flag is held to no rule at all: it is
+   * information about the bay (`doc/decision/0317-*`).
    */
   async update(input: UpdateSpotInput, actorUserId: string): Promise<ParkingSpot> {
     const { id, ...changes } = input;
@@ -156,6 +157,7 @@ export class SpotsService implements OnModuleInit {
       ...(changes.group === undefined ? {} : { group: changes.group }),
       ...(changes.active === undefined ? {} : { active: changes.active }),
       ...(changes.hidden === undefined ? {} : { hidden: changes.hidden }),
+      ...(changes.evCharger === undefined ? {} : { evCharger: changes.evCharger }),
     };
     const row = await this.prisma.client.parkingSpot.update({ where: { id }, data });
 
@@ -177,8 +179,15 @@ export class SpotsService implements OnModuleInit {
           group: existing.group,
           active: existing.active,
           hidden: existing.hidden,
+          evCharger: existing.evCharger,
         },
-        after: { label: row.label, group: row.group, active: row.active, hidden: row.hidden },
+        after: {
+          label: row.label,
+          group: row.group,
+          active: row.active,
+          hidden: row.hidden,
+          evCharger: row.evCharger,
+        },
       },
     });
 

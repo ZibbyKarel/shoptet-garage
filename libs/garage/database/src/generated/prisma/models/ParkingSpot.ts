@@ -31,6 +31,7 @@ export type ParkingSpotMinAggregateOutputType = {
   group: $Enums.ParkingGroup | null
   active: boolean | null
   hidden: boolean | null
+  evCharger: boolean | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -41,6 +42,7 @@ export type ParkingSpotMaxAggregateOutputType = {
   group: $Enums.ParkingGroup | null
   active: boolean | null
   hidden: boolean | null
+  evCharger: boolean | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -51,6 +53,7 @@ export type ParkingSpotCountAggregateOutputType = {
   group: number
   active: number
   hidden: number
+  evCharger: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -63,6 +66,7 @@ export type ParkingSpotMinAggregateInputType = {
   group?: true
   active?: true
   hidden?: true
+  evCharger?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -73,6 +77,7 @@ export type ParkingSpotMaxAggregateInputType = {
   group?: true
   active?: true
   hidden?: true
+  evCharger?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -83,6 +88,7 @@ export type ParkingSpotCountAggregateInputType = {
   group?: true
   active?: true
   hidden?: true
+  evCharger?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -166,6 +172,7 @@ export type ParkingSpotGroupByOutputType = {
   group: $Enums.ParkingGroup
   active: boolean
   hidden: boolean
+  evCharger: boolean
   createdAt: Date
   updatedAt: Date
   _count: ParkingSpotCountAggregateOutputType | null
@@ -197,6 +204,7 @@ export type ParkingSpotWhereInput = {
   group?: Prisma.EnumParkingGroupFilter<"ParkingSpot"> | $Enums.ParkingGroup
   active?: Prisma.BoolFilter<"ParkingSpot"> | boolean
   hidden?: Prisma.BoolFilter<"ParkingSpot"> | boolean
+  evCharger?: Prisma.BoolFilter<"ParkingSpot"> | boolean
   createdAt?: Prisma.DateTimeFilter<"ParkingSpot"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"ParkingSpot"> | Date | string
   reservations?: Prisma.ReservationListRelationFilter
@@ -211,6 +219,7 @@ export type ParkingSpotOrderByWithRelationInput = {
   group?: Prisma.SortOrder
   active?: Prisma.SortOrder
   hidden?: Prisma.SortOrder
+  evCharger?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   reservations?: Prisma.ReservationOrderByRelationAggregateInput
@@ -228,6 +237,7 @@ export type ParkingSpotWhereUniqueInput = Prisma.AtLeast<{
   group?: Prisma.EnumParkingGroupFilter<"ParkingSpot"> | $Enums.ParkingGroup
   active?: Prisma.BoolFilter<"ParkingSpot"> | boolean
   hidden?: Prisma.BoolFilter<"ParkingSpot"> | boolean
+  evCharger?: Prisma.BoolFilter<"ParkingSpot"> | boolean
   createdAt?: Prisma.DateTimeFilter<"ParkingSpot"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"ParkingSpot"> | Date | string
   reservations?: Prisma.ReservationListRelationFilter
@@ -242,6 +252,7 @@ export type ParkingSpotOrderByWithAggregationInput = {
   group?: Prisma.SortOrder
   active?: Prisma.SortOrder
   hidden?: Prisma.SortOrder
+  evCharger?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.ParkingSpotCountOrderByAggregateInput
@@ -258,6 +269,7 @@ export type ParkingSpotScalarWhereWithAggregatesInput = {
   group?: Prisma.EnumParkingGroupWithAggregatesFilter<"ParkingSpot"> | $Enums.ParkingGroup
   active?: Prisma.BoolWithAggregatesFilter<"ParkingSpot"> | boolean
   hidden?: Prisma.BoolWithAggregatesFilter<"ParkingSpot"> | boolean
+  evCharger?: Prisma.BoolWithAggregatesFilter<"ParkingSpot"> | boolean
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"ParkingSpot"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"ParkingSpot"> | Date | string
 }
@@ -268,6 +280,7 @@ export type ParkingSpotCreateInput = {
   group: $Enums.ParkingGroup
   active?: boolean
   hidden?: boolean
+  evCharger?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   reservations?: Prisma.ReservationCreateNestedManyWithoutParkingSpotInput
@@ -282,6 +295,7 @@ export type ParkingSpotUncheckedCreateInput = {
   group: $Enums.ParkingGroup
   active?: boolean
   hidden?: boolean
+  evCharger?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   reservations?: Prisma.ReservationUncheckedCreateNestedManyWithoutParkingSpotInput
@@ -296,6 +310,7 @@ export type ParkingSpotUpdateInput = {
   group?: Prisma.EnumParkingGroupFieldUpdateOperationsInput | $Enums.ParkingGroup
   active?: Prisma.BoolFieldUpdateOperationsInput | boolean
   hidden?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  evCharger?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   reservations?: Prisma.ReservationUpdateManyWithoutParkingSpotNestedInput
@@ -310,6 +325,7 @@ export type ParkingSpotUncheckedUpdateInput = {
   group?: Prisma.EnumParkingGroupFieldUpdateOperationsInput | $Enums.ParkingGroup
   active?: Prisma.BoolFieldUpdateOperationsInput | boolean
   hidden?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  evCharger?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   reservations?: Prisma.ReservationUncheckedUpdateManyWithoutParkingSpotNestedInput
@@ -324,6 +340,7 @@ export type ParkingSpotCreateManyInput = {
   group: $Enums.ParkingGroup
   active?: boolean
   hidden?: boolean
+  evCharger?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -334,6 +351,7 @@ export type ParkingSpotUpdateManyMutationInput = {
   group?: Prisma.EnumParkingGroupFieldUpdateOperationsInput | $Enums.ParkingGroup
   active?: Prisma.BoolFieldUpdateOperationsInput | boolean
   hidden?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  evCharger?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -344,6 +362,7 @@ export type ParkingSpotUncheckedUpdateManyInput = {
   group?: Prisma.EnumParkingGroupFieldUpdateOperationsInput | $Enums.ParkingGroup
   active?: Prisma.BoolFieldUpdateOperationsInput | boolean
   hidden?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  evCharger?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -359,6 +378,7 @@ export type ParkingSpotCountOrderByAggregateInput = {
   group?: Prisma.SortOrder
   active?: Prisma.SortOrder
   hidden?: Prisma.SortOrder
+  evCharger?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -369,6 +389,7 @@ export type ParkingSpotMaxOrderByAggregateInput = {
   group?: Prisma.SortOrder
   active?: Prisma.SortOrder
   hidden?: Prisma.SortOrder
+  evCharger?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -379,6 +400,7 @@ export type ParkingSpotMinOrderByAggregateInput = {
   group?: Prisma.SortOrder
   active?: Prisma.SortOrder
   hidden?: Prisma.SortOrder
+  evCharger?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -456,6 +478,7 @@ export type ParkingSpotCreateWithoutPreferredByInput = {
   group: $Enums.ParkingGroup
   active?: boolean
   hidden?: boolean
+  evCharger?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   reservations?: Prisma.ReservationCreateNestedManyWithoutParkingSpotInput
@@ -469,6 +492,7 @@ export type ParkingSpotUncheckedCreateWithoutPreferredByInput = {
   group: $Enums.ParkingGroup
   active?: boolean
   hidden?: boolean
+  evCharger?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   reservations?: Prisma.ReservationUncheckedCreateNestedManyWithoutParkingSpotInput
@@ -498,6 +522,7 @@ export type ParkingSpotUpdateWithoutPreferredByInput = {
   group?: Prisma.EnumParkingGroupFieldUpdateOperationsInput | $Enums.ParkingGroup
   active?: Prisma.BoolFieldUpdateOperationsInput | boolean
   hidden?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  evCharger?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   reservations?: Prisma.ReservationUpdateManyWithoutParkingSpotNestedInput
@@ -511,6 +536,7 @@ export type ParkingSpotUncheckedUpdateWithoutPreferredByInput = {
   group?: Prisma.EnumParkingGroupFieldUpdateOperationsInput | $Enums.ParkingGroup
   active?: Prisma.BoolFieldUpdateOperationsInput | boolean
   hidden?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  evCharger?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   reservations?: Prisma.ReservationUncheckedUpdateManyWithoutParkingSpotNestedInput
@@ -524,6 +550,7 @@ export type ParkingSpotCreateWithoutReservationsInput = {
   group: $Enums.ParkingGroup
   active?: boolean
   hidden?: boolean
+  evCharger?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   waitlistEntries?: Prisma.WaitlistEntryCreateNestedManyWithoutParkingSpotInput
@@ -537,6 +564,7 @@ export type ParkingSpotUncheckedCreateWithoutReservationsInput = {
   group: $Enums.ParkingGroup
   active?: boolean
   hidden?: boolean
+  evCharger?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   waitlistEntries?: Prisma.WaitlistEntryUncheckedCreateNestedManyWithoutParkingSpotInput
@@ -566,6 +594,7 @@ export type ParkingSpotUpdateWithoutReservationsInput = {
   group?: Prisma.EnumParkingGroupFieldUpdateOperationsInput | $Enums.ParkingGroup
   active?: Prisma.BoolFieldUpdateOperationsInput | boolean
   hidden?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  evCharger?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   waitlistEntries?: Prisma.WaitlistEntryUpdateManyWithoutParkingSpotNestedInput
@@ -579,6 +608,7 @@ export type ParkingSpotUncheckedUpdateWithoutReservationsInput = {
   group?: Prisma.EnumParkingGroupFieldUpdateOperationsInput | $Enums.ParkingGroup
   active?: Prisma.BoolFieldUpdateOperationsInput | boolean
   hidden?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  evCharger?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   waitlistEntries?: Prisma.WaitlistEntryUncheckedUpdateManyWithoutParkingSpotNestedInput
@@ -592,6 +622,7 @@ export type ParkingSpotCreateWithoutTimedReservationsInput = {
   group: $Enums.ParkingGroup
   active?: boolean
   hidden?: boolean
+  evCharger?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   reservations?: Prisma.ReservationCreateNestedManyWithoutParkingSpotInput
@@ -605,6 +636,7 @@ export type ParkingSpotUncheckedCreateWithoutTimedReservationsInput = {
   group: $Enums.ParkingGroup
   active?: boolean
   hidden?: boolean
+  evCharger?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   reservations?: Prisma.ReservationUncheckedCreateNestedManyWithoutParkingSpotInput
@@ -634,6 +666,7 @@ export type ParkingSpotUpdateWithoutTimedReservationsInput = {
   group?: Prisma.EnumParkingGroupFieldUpdateOperationsInput | $Enums.ParkingGroup
   active?: Prisma.BoolFieldUpdateOperationsInput | boolean
   hidden?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  evCharger?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   reservations?: Prisma.ReservationUpdateManyWithoutParkingSpotNestedInput
@@ -647,6 +680,7 @@ export type ParkingSpotUncheckedUpdateWithoutTimedReservationsInput = {
   group?: Prisma.EnumParkingGroupFieldUpdateOperationsInput | $Enums.ParkingGroup
   active?: Prisma.BoolFieldUpdateOperationsInput | boolean
   hidden?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  evCharger?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   reservations?: Prisma.ReservationUncheckedUpdateManyWithoutParkingSpotNestedInput
@@ -660,6 +694,7 @@ export type ParkingSpotCreateWithoutWaitlistEntriesInput = {
   group: $Enums.ParkingGroup
   active?: boolean
   hidden?: boolean
+  evCharger?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   reservations?: Prisma.ReservationCreateNestedManyWithoutParkingSpotInput
@@ -673,6 +708,7 @@ export type ParkingSpotUncheckedCreateWithoutWaitlistEntriesInput = {
   group: $Enums.ParkingGroup
   active?: boolean
   hidden?: boolean
+  evCharger?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   reservations?: Prisma.ReservationUncheckedCreateNestedManyWithoutParkingSpotInput
@@ -702,6 +738,7 @@ export type ParkingSpotUpdateWithoutWaitlistEntriesInput = {
   group?: Prisma.EnumParkingGroupFieldUpdateOperationsInput | $Enums.ParkingGroup
   active?: Prisma.BoolFieldUpdateOperationsInput | boolean
   hidden?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  evCharger?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   reservations?: Prisma.ReservationUpdateManyWithoutParkingSpotNestedInput
@@ -715,6 +752,7 @@ export type ParkingSpotUncheckedUpdateWithoutWaitlistEntriesInput = {
   group?: Prisma.EnumParkingGroupFieldUpdateOperationsInput | $Enums.ParkingGroup
   active?: Prisma.BoolFieldUpdateOperationsInput | boolean
   hidden?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  evCharger?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   reservations?: Prisma.ReservationUncheckedUpdateManyWithoutParkingSpotNestedInput
@@ -786,6 +824,7 @@ export type ParkingSpotSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   group?: boolean
   active?: boolean
   hidden?: boolean
+  evCharger?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   reservations?: boolean | Prisma.ParkingSpot$reservationsArgs<ExtArgs>
@@ -801,6 +840,7 @@ export type ParkingSpotSelectCreateManyAndReturn<ExtArgs extends runtime.Types.E
   group?: boolean
   active?: boolean
   hidden?: boolean
+  evCharger?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["parkingSpot"]>
@@ -811,6 +851,7 @@ export type ParkingSpotSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.E
   group?: boolean
   active?: boolean
   hidden?: boolean
+  evCharger?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["parkingSpot"]>
@@ -821,11 +862,12 @@ export type ParkingSpotSelectScalar = {
   group?: boolean
   active?: boolean
   hidden?: boolean
+  evCharger?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type ParkingSpotOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "label" | "group" | "active" | "hidden" | "createdAt" | "updatedAt", ExtArgs["result"]["parkingSpot"]>
+export type ParkingSpotOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "label" | "group" | "active" | "hidden" | "evCharger" | "createdAt" | "updatedAt", ExtArgs["result"]["parkingSpot"]>
 export type ParkingSpotInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   reservations?: boolean | Prisma.ParkingSpot$reservationsArgs<ExtArgs>
   waitlistEntries?: boolean | Prisma.ParkingSpot$waitlistEntriesArgs<ExtArgs>
@@ -857,6 +899,11 @@ export type $ParkingSpotPayload<ExtArgs extends runtime.Types.Extensions.Interna
      * Not a retirement: a hidden spot stays bookable by an admin, for anybody.
      */
     hidden: boolean
+    /**
+     * Has a charger for electric cars. Informational only, shown to everybody
+     * (`doc/decision/0317-the-ev-charger-flag-is-informational-and-shown-to-everyone`).
+     */
+    evCharger: boolean
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["parkingSpot"]>
@@ -1291,6 +1338,7 @@ export interface ParkingSpotFieldRefs {
   readonly group: Prisma.FieldRef<"ParkingSpot", 'ParkingGroup'>
   readonly active: Prisma.FieldRef<"ParkingSpot", 'Boolean'>
   readonly hidden: Prisma.FieldRef<"ParkingSpot", 'Boolean'>
+  readonly evCharger: Prisma.FieldRef<"ParkingSpot", 'Boolean'>
   readonly createdAt: Prisma.FieldRef<"ParkingSpot", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"ParkingSpot", 'DateTime'>
 }

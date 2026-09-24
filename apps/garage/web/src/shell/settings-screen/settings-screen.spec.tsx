@@ -69,6 +69,7 @@ const SPOT_A: ParkingSpot = {
   group: 'IT',
   active: true,
   hidden: false,
+  evCharger: false,
   createdAt: '2026-08-28T09:15:00.000Z',
   updatedAt: '2026-08-28T09:15:00.000Z',
 };
