@@ -29,6 +29,7 @@ export function spot(overrides: Partial<SpotView> = {}): SpotView {
     showAdminMenu: false,
     holderIsGuest: false,
     infoReason: null,
+    timedBlocks: [],
     ...overrides,
   };
 }
@@ -70,6 +71,8 @@ export function renderDialog(overrides: DialogOverrides = {}) {
     onJoinWaitlist: jest.fn(),
     onLeaveWaitlist: jest.fn(),
     onCancelReservation: jest.fn(),
+    onReserveTimed: jest.fn(),
+    onCancelTimedReservation: jest.fn(),
   };
 
   function tree(props: DialogOverrides) {

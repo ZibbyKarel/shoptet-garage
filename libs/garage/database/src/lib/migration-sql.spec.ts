@@ -262,6 +262,35 @@ describe('reservation-limit-settings migration — hand-written constraints', ()
   });
 });
 
+describe('timed-reservation migration — column types', () => {
+  const timedReservationSql = readMigration('20260924120000_timed_reservation').replace(
+    /\s+/g,
+    ' '
+  );
+
+  it('startMinute and endMinute are SMALLINT, not TEXT', () => {
+    const createTable = timedReservationSql.match(
+      /CREATE TABLE "TimedReservation" \((.*?)\);/
+    )?.[1];
+    expect(createTable).toBeDefined();
+    expect(createTable).toContain('"startMinute" SMALLINT NOT NULL');
+    expect(createTable).toContain('"endMinute" SMALLINT NOT NULL');
+    expect(createTable).not.toMatch(/"(start|end)Minute" TEXT/);
+  });
+
+  // BEFORE would take the spot-day lock ahead of the unique index and deadlock
+  // a create against a cancellation's promotion — see the migration's comment
+  // and `database-contract.db.spec.ts`.
+  it('fires the Reservation trigger AFTER the row is written, the blocks trigger BEFORE', () => {
+    expect(timedReservationSql).toContain(
+      'CREATE TRIGGER "reservation_reject_timed_conflict" AFTER INSERT OR UPDATE OF "parkingSpotId", "date" ON "Reservation"'
+    );
+    expect(timedReservationSql).toContain(
+      'CREATE TRIGGER "timed_reservation_reject_conflict" BEFORE INSERT OR UPDATE'
+    );
+  });
+});
+
 describe('migration_lock.toml', () => {
   it('pins the provider to postgresql', () => {
     const lock = readFileSync(join(MIGRATIONS_DIR, 'migration_lock.toml'), 'utf8');

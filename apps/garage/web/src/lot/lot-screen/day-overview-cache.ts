@@ -40,6 +40,7 @@ import type {
   ReservationCancelledEvent,
   ReservationCreatedEvent,
   ReservationReassignedEvent,
+  TimedReservationsUpdatedEvent,
   WaitlistUpdatedEvent,
 } from '@garage/contract/realtime';
 
@@ -167,6 +168,29 @@ export function applyWaitlistUpdated(
   if (row === undefined || row.waitlistCount === event.waitlistCount) return day;
 
   return replaceRow(day, index, { ...row, waitlistCount: event.waitlistCount });
+}
+
+/**
+ * `timed-reservations:updated` — the guest blocks on one cell changed (a
+ * create or a cancel).
+ *
+ * The **whole current list** replaces what was cached, same as `waitlistCount`
+ * above and for the same reason: a client that missed one event self-heals on
+ * the next rather than drifting. No viewer-relative field depends on a guest
+ * block — a block has no `userId` and no queue position — so there is nothing
+ * for a `touchesViewer` predicate to catch and none is exported for this event.
+ */
+export function applyTimedReservationsUpdated(
+  day: DayOverviewOutput,
+  event: TimedReservationsUpdatedEvent
+): DayOverviewOutput {
+  const index = locate(day, event);
+  if (index === -1) return day;
+
+  const row = day.spots[index];
+  if (row === undefined) return day;
+
+  return replaceRow(day, index, { ...row, timedReservations: event.timedReservations });
 }
 
 /** The row this event is about, or `null` if it is about another day or spot. */

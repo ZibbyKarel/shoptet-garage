@@ -1,5 +1,6 @@
 export * from './lib/date-only';
 export * from './lib/prague-time';
+export * from './lib/time-of-day';
 /**
  * Named, not a star: the Easter arithmetic (`easterSunday`, `goodFriday`,
  * `easterMonday`, `GOOD_FRIDAY_FIRST_YEAR`) and the year's holiday table

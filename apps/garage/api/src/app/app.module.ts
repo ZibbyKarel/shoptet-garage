@@ -23,6 +23,7 @@ import { ReservationsModule } from '../reservations/reservations.module';
 import { ShutdownModule } from '../shutdown/shutdown.module';
 import { SlackModule } from '../slack/slack.module';
 import { SpotsModule } from '../spots/spots.module';
+import { TimedReservationsModule } from '../timed-reservations/timed-reservations.module';
 import { UsersModule } from '../users/users.module';
 
 /**
@@ -78,6 +79,10 @@ import { UsersModule } from '../users/users.module';
     // Task 13. Reservations, the waitlist, and the auto-promotion that couples
     // them inside one transaction.
     ReservationsModule,
+    // Admin-only guest half-hour blocks. Imported after `ReservationsModule`
+    // because it reuses that module's exported `ReservationPolicy` and
+    // `DomainEventPublisher` rather than standing up its own.
+    TimedReservationsModule,
     // The ICS feed (Task 14). The one controller outside the oRPC contract —
     // see its class comment and `doc/decision/0080-*`.
     CalendarModule,

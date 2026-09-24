@@ -20,9 +20,9 @@ The wrapper rule from `plan.md` applies here more than anywhere, because this
 is the code most tempted to reach past it. App code imports the wrapper, never
 the library:
 
-| Instead of                     | Import                                             |
-| ------------------------------ | -------------------------------------------------- |
-| `next-auth`, `next-auth/react` | `@garage/auth`, `@garage/auth/client`        |
+| Instead of                     | Import                                          |
+| ------------------------------ | ----------------------------------------------- |
+| `next-auth`, `next-auth/react` | `@garage/auth`, `@garage/auth/client`           |
 | `@tanstack/react-query`        | `@garage/query`                                 |
 | `@tanstack/react-table`        | `@garage/design-system/compounds` (`DataTable`) |
 | `socket.io-client`             | `@garage/realtime-client`                       |
@@ -276,6 +276,44 @@ a client-side inference. Its locked-month refusal is deliberately ordered
 _after_ the result step, so a window that closes between a successful
 confirmation and its refetch cannot replace a finished comparison with a
 sentence saying nothing was created (`doc/decision/0176-*`).
+
+## The spot dialog: reserve, queue, cancel, or a guest half-hour block
+
+`lot/spot-dialog/spot-dialog.tsx` is the dialog behind a bay, presentational
+throughout — every decision arrives as a prop on `SpotDialogProps`, and each
+of its actions (`onReserve`, `onJoinWaitlist`, `onLeaveWaitlist`,
+`onCancelReservation`, `onReserveTimed`, `onCancelTimedReservation`) is a
+callback `lot-screen.tsx` wires to a procedure. `toSpotView` (`lot-view.ts`)
+decides which of the dialog's modes a bay is in before the dialog ever
+renders.
+
+An admin's holder form (`HolderFields`) gained a fourth mode alongside the
+existing user/guest full-day choice: a guest holder may additionally pick
+`duration: 'TIMED'`, which swaps the plain confirmation for a start/end time
+pair on the half-hour grid. Submitting routes to `onReserveTimed` instead of
+`onReserve` — `holder-input.ts`'s `toReservationRequest` makes that decision
+once, flatly, rather than have the dialog re-derive "is this a timed booking"
+from the same fields the form already validated. A user holder can never
+reach `'TIMED'`: `toReservationRequest` falls back to `'FULL_DAY'` for one
+regardless of what `duration` says, because a user's own reservation is
+always the whole day (`plan.md`).
+
+A bay that already carries one or more guest blocks gets its own appearance,
+`'timed'` (`toSpotView`'s precedence: lock > full-day holder > guest blocks >
+free / window-locked) — mutually exclusive with `'taken'`, since the
+database refuses a full-day `Reservation` and any `TimedReservation` on the
+same cell at once (`doc/decision/0314-*`). Its dialog renders the list of
+existing blocks (time range, guest name, plate) above the holder form rather
+than instead of it: an admin may still add another non-overlapping block to
+a spot that already has some, and the holder form there defaults to a fixed
+guest with `duration: 'TIMED'` (`HolderFields`'s `timedOnly`), so it needs
+neither a role selector nor the admin's user list to have loaded first — the
+one case where the holder form appears without waiting on
+`holderOptions.length > 0`. Each existing block gets its own cancel button,
+visible only to an admin, wired to `onCancelTimedReservation`.
+
+A spot with blocks has no queue UI: the waitlist section only ever renders
+for `isTaken`, and a `'timed'` appearance is never `isTaken`.
 
 ## Loading, empty and error
 

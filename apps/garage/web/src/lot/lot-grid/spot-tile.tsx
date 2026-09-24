@@ -10,7 +10,7 @@ import {
   cx,
 } from '@garage/design-system/primitives';
 import { useTranslations } from '@garage/i18n';
-import type { SpotView } from '../lot-view';
+import { formatTimeRange, type SpotView } from '../lot-view';
 import { CarGlyph } from './car-glyph';
 
 export interface SpotTileProps {
@@ -74,22 +74,33 @@ export function SpotTile({ spot, onOpen, onAdminOpen }: SpotTileProps) {
         ? [spot.holderName, spot.holderPlate]
         : spot.appearance === 'window-locked'
           ? [t('tileLocked')]
-          : // "právě upravuje Jana Dvořáková" reads as one clause and is joined
-            // with a space; the tile draws the same two strings on two lines.
-            [
-              spot.editorName === null
-                ? t('tileEditing')
-                : `${t('tileEditing')} ${spot.editorName}`,
-            ];
+          : spot.appearance === 'timed'
+            ? // `tileTimedLabel` builds the whole accessible name below rather
+              // than joining onto the "Rezervovat/Otevřít místo" prefix — see
+              // `accessibleName`.
+              []
+            : // "právě upravuje Jana Dvořáková" reads as one clause and is joined
+              // with a space; the tile draws the same two strings on two lines.
+              [
+                spot.editorName === null
+                  ? t('tileEditing')
+                  : `${t('tileEditing')} ${spot.editorName}`,
+              ];
 
-  const accessibleName = [
-    spot.appearance === 'free'
-      ? t('reserveSpotAction', { label: spot.label })
-      : t('openSpotAction', { label: spot.label }),
-    ...stateWords,
-  ]
-    .filter((word): word is string => word !== null && word !== '')
-    .join(', ');
+  const accessibleName =
+    spot.appearance === 'timed'
+      ? t('tileTimedLabel', {
+          label: spot.label,
+          times: spot.timedBlocks.map((block) => formatTimeRange(block)).join(', '),
+        })
+      : [
+          spot.appearance === 'free'
+            ? t('reserveSpotAction', { label: spot.label })
+            : t('openSpotAction', { label: spot.label }),
+          ...stateWords,
+        ]
+          .filter((word): word is string => word !== null && word !== '')
+          .join(', ');
 
   return (
     // eslint-disable-next-line no-restricted-syntax -- `.lot-bay`: the painted divider lines between bays and at the kerb (`--lot-line-w`/`--lot-kerb-w`), plus the bay's own stretch/max-width pair — domain geometry, no `Box` prop for either.
@@ -136,6 +147,32 @@ export function SpotTile({ spot, onOpen, onAdminOpen }: SpotTileProps) {
             <Text as="span" size="sm" weight="medium">
               {t('free')}
             </Text>
+          </Stack>
+        ) : null}
+
+        {spot.appearance === 'timed' ? (
+          // Same frame as `'free'` — dashed outline, width/flex-sizing,
+          // inherited caption colour — with the blocks' time ranges in place
+          // of "Volné" and no car glyph.
+          <Stack
+            as="span"
+            direction="column"
+            align="center"
+            justify="center"
+            spacing={1}
+            // eslint-disable-next-line no-restricted-syntax -- `.lot-bay-free`: reused as-is for this appearance too, see the comment above.
+            className="lot-bay-free"
+          >
+            {spot.timedBlocks.slice(0, 2).map((block) => (
+              <Text key={block.id} as="span" size="xs" weight="medium" align="center">
+                {formatTimeRange(block)}
+              </Text>
+            ))}
+            {spot.timedBlocks.length > 2 ? (
+              <Text as="span" size="xs" align="center">
+                {t('tileMoreBlocks', { count: spot.timedBlocks.length - 2 })}
+              </Text>
+            ) : null}
           </Stack>
         ) : null}
 

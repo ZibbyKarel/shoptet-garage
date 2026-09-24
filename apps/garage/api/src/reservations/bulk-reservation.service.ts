@@ -127,7 +127,7 @@ import type { AuditEntry } from '../audit/audit-log.service';
 import { AuditLogService } from '../audit/audit-log.service';
 import type { AuthenticatedUser } from '../auth/authenticated-user';
 import { DomainError } from '../common/errors/domain-error';
-import { isWriteConflict } from '../common/errors/prisma-error-mapping';
+import { isTimedReservationConflict, isWriteConflict } from '../common/errors/prisma-error-mapping';
 import { toDateColumn, toDateOnly, toPublicReservation } from '../common/prisma-mapping';
 import { PrismaService } from '../database/prisma.service';
 import { ReservationWindowService } from '../reservation-window/reservation-window.service';
@@ -182,6 +182,7 @@ interface MutableDayState {
   reservedSpotIds: Set<string>;
   userHasReservation: boolean;
   queuedUserIdsBySpotId: Map<string, string[]>;
+  blockedSpotIds: Set<string>;
 }
 
 /** Everything both procedures read before they can decide anything. */
@@ -307,6 +308,13 @@ export class BulkReservationService {
    * the victim — Prisma's own SQL reports `P2034`, a `$queryRaw` reports `P2010`
    * wrapping `40P01`. `doc/decision/0240-*`.
    *
+   * It is also retried on {@link isTimedReservationConflict}: a guest half-hour
+   * block committed on the preferred spot between this transaction's
+   * `readWorld` and its reservation insert surfaces as a `P2002` on the trigger
+   * that enforces spot/day exclusivity, not as a deadlock — the read simply
+   * missed a block that exists now. The retry re-reads the world, which sees
+   * the block and routes the allocator around it. `doc/decision/0314-*`.
+   *
    * **Why it terminates.** Not for the reason `ReservationsService.cancel`'s
    * loop does: that one eliminates a candidate per attempt, and a re-run of
    * `allocateBulk` makes no such monotone progress — it can reach for the same
@@ -337,7 +345,7 @@ export class BulkReservationService {
       } catch (error) {
         if (
           !(error instanceof PrismaNamespace.PrismaClientKnownRequestError) ||
-          !isWriteConflict(error)
+          !(isWriteConflict(error) || isTimedReservationConflict(error))
         ) {
           throw error;
         }
@@ -500,7 +508,7 @@ export class BulkReservationService {
   ): Promise<World> {
     const dateColumns = dates.map(toDateColumn);
 
-    const [spots, holder, reservations, waitlist] = await Promise.all([
+    const [spots, holder, reservations, waitlist, timedReservations] = await Promise.all([
       client.parkingSpot.findMany({
         where: { active: true },
         select: { id: true, label: true, group: true },
@@ -524,6 +532,13 @@ export class BulkReservationService {
         orderBy: WAITLIST_ORDER,
         select: { parkingSpotId: true, userId: true, date: true },
       }),
+      // Guest half-hour blocks. A blocked spot has no full-day holder, so it is
+      // neither assignable nor queueable that day — see `bulk-allocator.ts`'s
+      // `blockedSpotIds`.
+      client.timedReservation.findMany({
+        where: { date: { in: dateColumns } },
+        select: { parkingSpotId: true, date: true },
+      }),
     ]);
 
     const stateByDate = new Map<DateOnly, MutableDayState>();
@@ -536,6 +551,7 @@ export class BulkReservationService {
         reservedSpotIds: new Set(),
         userHasReservation: false,
         queuedUserIdsBySpotId: new Map(),
+        blockedSpotIds: new Set(),
       };
       stateByDate.set(date, fresh);
       return fresh;
@@ -556,6 +572,9 @@ export class BulkReservationService {
       const queue = day.queuedUserIdsBySpotId.get(row.parkingSpotId) ?? [];
       queue.push(row.userId);
       day.queuedUserIdsBySpotId.set(row.parkingSpotId, queue);
+    }
+    for (const row of timedReservations) {
+      dayFor(toDateOnly(row.date)).blockedSpotIds.add(row.parkingSpotId);
     }
 
     return {

@@ -51,6 +51,19 @@ const validPayloads: Record<ServerToClientEventName, unknown> = {
     fromWaitlistEntryId: null,
   },
   'waitlist:updated': { ...cellRef, waitlistCount: 2 },
+  'timed-reservations:updated': {
+    ...cellRef,
+    timedReservations: [
+      {
+        id: '55555555-5555-4555-8555-555555555555',
+        startTime: '08:00',
+        endTime: '09:00',
+        guestName: 'Guest',
+        licensePlate: null,
+        createdAt: TIMESTAMP,
+      },
+    ],
+  },
 };
 
 const eventNames = Object.keys(SERVER_TO_CLIENT_EVENT_SCHEMAS) as ServerToClientEventName[];

@@ -134,6 +134,7 @@ function row(id: string, overrides: Partial<DaySpotOverview> = {}): DaySpotOverv
     waitlistCount: 0,
     viewerWaitlistEntryId: null,
     viewerWaitlistPosition: null,
+    timedReservations: [],
     ...overrides,
   };
 }
@@ -262,14 +263,37 @@ describe('useLotRealtime', () => {
     expect(roomEvents).toEqual([{ type: 'join', date: null }]);
   });
 
-  it('subscribes to every event the screen depends on, and no fifth one', () => {
+  it('subscribes to every event the screen depends on, and no sixth one', () => {
     setup();
     expect([...handlers.keys()].sort()).toEqual([
       'reservation:cancelled',
       'reservation:created',
       'reservation:reassigned',
+      'timed-reservations:updated',
       'waitlist:updated',
     ]);
+  });
+
+  it('patches guest blocks into the key the screen reads', () => {
+    const { client } = setup();
+
+    emit('timed-reservations:updated', {
+      date: DATE,
+      parkingSpotId: 'spot-a',
+      timedReservations: [
+        {
+          id: 'timed-1',
+          startTime: '09:00',
+          endTime: '10:30',
+          guestName: 'Jan Host',
+          licensePlate: null,
+          createdAt: '2026-09-01T08:00:00.000Z',
+        },
+      ],
+    });
+
+    const cached = client.getQueryData<DayOverviewOutput>(dayKey(DATE));
+    expect(cached?.spots[0]?.timedReservations).toHaveLength(1);
   });
 
   it('patches a created reservation into the key the screen reads', () => {

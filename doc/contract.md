@@ -11,8 +11,8 @@ contract); Task 4 added the oRPC procedures and Task 5 the realtime events.
 
 ## Two libs, a sharp division
 
-| lib                           | tags                                            | what it is                                                    | what it **must not** contain                               |
-| ----------------------------- | ----------------------------------------------- | ------------------------------------------------------------- | ---------------------------------------------------------- |
+| lib                        | tags                                            | what it is                                                    | what it **must not** contain                               |
+| -------------------------- | ----------------------------------------------- | ------------------------------------------------------------- | ---------------------------------------------------------- |
 | `libs/garage/shared-types` | `type:util`, `scope:shared`, `layer:foundation` | domain constants and pure date-only logic for `Europe/Prague` | Zod, next-intl, any runtime dependency                     |
 | `libs/garage/contract`     | `type:contract`, `scope:shared`                 | Zod schemas + the oRPC contract + realtime events             | anything from npm besides `zod`, `@orpc/contract`, `tslib` |
 
@@ -272,6 +272,14 @@ Other users' data goes out as `userSummarySchema` — a `pick` of three fields
 (`id`, `name`, `licensePlate`). `email`, `oktaId`, and above all `icsToken`
 never reach another user's browser.
 
+Each spot row also carries `timedReservations[]` — the guest half-hour
+blocks booked on that spot for that day, ascending by `startTime`. It is
+non-empty only while `reservation` is `null`: the database refuses a
+full-day `Reservation` and any `TimedReservation` block on the same cell at
+once (`doc/decision/0314-*`), so the two fields are never both meaningful for
+the same row. A spot with blocks cannot take a full-day reservation, but an
+admin may add further non-overlapping blocks to it.
+
 ### Reservations
 
 | procedure                 | input                     | output                                             | other errors                                                                                                                                             |
@@ -527,6 +535,35 @@ situation `admin.window.months` is in above. Worth checking against
 documentation task does not change the contract, so it is left declared as
 written and flagged here rather than silently doc'd over.
 
+### Timed reservations (admin)
+
+| procedure                       | input                                                                  | output                                        | other errors                                                                       |
+| ------------------------------- | ---------------------------------------------------------------------- | --------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `admin.timedReservation.create` | `{ parkingSpotId, date, startTime, endTime, guestName, licensePlate }` | `TimedReservation`                            | `NOT_FOUND`, `SPOT_ALREADY_RESERVED`, `PAST_DATE`, `VALIDATION_FAILED`, `CONFLICT` |
+| `admin.timedReservation.cancel` | `{ timedReservationId }`                                               | `{ timedReservationId, date, parkingSpotId }` | `NOT_FOUND`                                                                        |
+
+Admin-only, guest-only: a `TimedReservation` books a spot for a named guest on
+a half-hour-granular block of one day (`startTime`/`endTime` on the half-hour
+grid, half-open — `10:00`–`11:00` and `11:00`–`12:00` do not overlap), not the
+whole day. It is a separate row from `Reservation`, not a nullable time range
+on it, because every existing flow keyed on `Reservation`'s one-per-spot-per-
+day rule — the waitlist, promotion, the bulk allocator, the cap, the ICS
+feed, Slack — would otherwise have had to learn a second meaning for the
+same row (`doc/decision/0314-*`).
+
+`SPOT_ALREADY_RESERVED` covers two different refusals with one honest
+answer: the spot already has a full-day `Reservation` that day, or the
+requested block overlaps another `TimedReservation` on it. Both are enforced
+by a database trigger, not by a read-then-write check here, and the trigger
+does not distinguish the two cases either. `PAST_DATE` and
+`VALIDATION_FAILED` (a non-business day) come from the same
+`ReservationPolicy.assertMayTakeDay` guard `reservation.create` runs, so the
+admin window exemption applies here too and neither `OUT_OF_HORIZON` nor
+`RESERVATIONS_LOCKED` is reachable — the contract does not declare them.
+
+A spot with blocks has no waitlist: the queue is a `Reservation`-shaped
+concept, and nothing here gives a cell with guest blocks an equivalent.
+
 ---
 
 ## Realtime (`@garage/contract/realtime`)
@@ -564,14 +601,15 @@ be taken on faith.
 All of these are sent **only after** a transaction commits (Task 15) and go
 to the entire day room.
 
-| event                    | payload                                                                                   | when                                                                       |
-| ------------------------ | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| `cell:locked`            | `{ date, parkingSpotId, lockedBy, expiresAt }`                                            | someone started editing a cell; the UI shows "currently being edited by …" |
-| `cell:unlocked`          | `{ date, parkingSpotId }`                                                                 | the lock was released, expired, or dropped with the socket                 |
-| `reservation:created`    | `{ date, parkingSpotId, reservation }`                                                    | a free spot is now occupied                                                |
-| `reservation:cancelled`  | `{ date, parkingSpotId, reservationId }`                                                  | the spot is free and **stays** free                                        |
-| `reservation:reassigned` | `{ date, parkingSpotId, cause, previousReservationId, reservation, fromWaitlistEntryId }` | the spot changed holder within a single transaction                        |
-| `waitlist:updated`       | `{ date, parkingSpotId, waitlistCount }`                                                  | the waitlist on a cell got longer or shorter                               |
+| event                        | payload                                                                                   | when                                                                       |
+| ---------------------------- | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `cell:locked`                | `{ date, parkingSpotId, lockedBy, expiresAt }`                                            | someone started editing a cell; the UI shows "currently being edited by …" |
+| `cell:unlocked`              | `{ date, parkingSpotId }`                                                                 | the lock was released, expired, or dropped with the socket                 |
+| `reservation:created`        | `{ date, parkingSpotId, reservation }`                                                    | a free spot is now occupied                                                |
+| `reservation:cancelled`      | `{ date, parkingSpotId, reservationId }`                                                  | the spot is free and **stays** free                                        |
+| `reservation:reassigned`     | `{ date, parkingSpotId, cause, previousReservationId, reservation, fromWaitlistEntryId }` | the spot changed holder within a single transaction                        |
+| `waitlist:updated`           | `{ date, parkingSpotId, waitlistCount }`                                                  | the waitlist on a cell got longer or shorter                               |
+| `timed-reservations:updated` | `{ date, parkingSpotId, timedReservations[] }`                                            | a guest half-hour block was created or cancelled on this cell              |
 
 **Names.** `<subject>:<past-participle>`, a colon, lowercase, subject in the
 singular. The past tense is information: an event announces something that
@@ -607,6 +645,15 @@ like a window violation. That it wasn't a user action is said by the name;
 **which** system action it was is said by `cause`
 (`RESERVATION_REASSIGN_CAUSES` in `shared-types`, today a single value,
 `WAITLIST_PROMOTION` — see `doc/decision/0022-*`).
+
+**`timed-reservations:updated` carries the whole current list of blocks on
+that cell, not a delta** — the same reason `reservation:created` carries a
+full spot row rather than a diff: a client that missed one event self-heals
+on the next rather than drifting forever. No field on it is viewer-relative
+(a guest block has no `userId` and no queue position), so unlike the events
+above it is never followed by a refetch. Two near-simultaneous writes to the
+same cell can have their events arrive out of order; the next write — or a
+manual refetch — always lands the true list regardless (`doc/decision/0314-*`).
 
 ### Client → server commands
 

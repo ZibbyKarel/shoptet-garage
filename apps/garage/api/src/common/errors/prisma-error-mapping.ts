@@ -246,6 +246,33 @@ function targetMatches(target: string[], table: string, columns: readonly string
 }
 
 /**
+ * The two constraint names raised by the (spot, day) triggers in migration
+ * `20260924120000_timed_reservation` — not indexes, so they do not follow
+ * Prisma's `Table_cols_key` naming and are matched by exact name.
+ * `doc/decision/0314-*`.
+ */
+const TIMED_RESERVATION_CONFLICTS = [
+  'timedreservation_spot_day_conflict',
+  'reservation_timed_reservation_conflict',
+] as const;
+
+function isTimedConflictTarget(target: string[]): boolean {
+  const [only] = target;
+  return (
+    target.length === 1 &&
+    only !== undefined &&
+    (TIMED_RESERVATION_CONFLICTS as readonly string[]).includes(only.toLowerCase())
+  );
+}
+
+/** True for a P2002 raised by the full-day/blocks triggers. Used by `confirmBulk`'s retry. */
+export function isTimedReservationConflict(error: unknown): boolean {
+  return (
+    isUniqueConstraintViolation(error) && isTimedConflictTarget(uniqueConstraintTarget(error.meta))
+  );
+}
+
+/**
  * Maps a unique-constraint violation to the domain error it means.
  *
  * A blanket `P2002 → SPOT_ALREADY_RESERVED` would mislabel two real
@@ -264,6 +291,9 @@ export function mapUniqueConstraintViolation(meta: Record<string, unknown> | und
   // with the `@@unique` blocks in `libs/garage/database/prisma/schema.prisma`.
   if (targetMatches(target, 'WaitlistEntry', ['parkingSpotId', 'userId', 'date'])) {
     return 'ALREADY_IN_WAITLIST';
+  }
+  if (isTimedConflictTarget(target)) {
+    return 'SPOT_ALREADY_RESERVED';
   }
   if (targetMatches(target, 'Reservation', ['parkingSpotId', 'date'])) {
     return 'SPOT_ALREADY_RESERVED';

@@ -52,9 +52,10 @@ import type { ReservationHolderInput } from '@garage/contract';
 import { toContractError } from '@garage/api-client';
 import { initialsOf } from '../../shell/initials';
 import { useNotify } from '../../shell/notifications/toast-provider';
+import { formatTimeRange } from '../lot-view';
 import type { SpotView } from '../lot-view';
 import { HolderFields } from './holder-fields';
-import { holderFormSchema, toHolderInput } from './holder-input';
+import { GUEST_HOLDER_VALUE, holderFormSchema, toReservationRequest } from './holder-input';
 import type { HolderFormValues, HolderOption } from './holder-input';
 import { QueueTargetFields } from './queue-target-fields';
 import { defaultQueueTargetId, queueTargetFormSchema } from './queue-target-input';
@@ -140,6 +141,39 @@ export interface SpotDialogProps {
   readonly onJoinWaitlist: (holderId?: string) => void;
   readonly onLeaveWaitlist: () => void;
   readonly onCancelReservation: () => void;
+  /**
+   * Book one guest half-hour block — only reachable from the guest holder
+   * form's `duration: 'TIMED'` branch, or from a `'timed'` spot's dialog
+   * (`timedOnly`, where the holder is a fixed guest).
+   */
+  readonly onReserveTimed: (block: {
+    guestName: string;
+    licensePlate: string | null;
+    startTime: string;
+    endTime: string;
+  }) => void;
+  /** Remove one guest block from a `'timed'` spot's list. */
+  readonly onCancelTimedReservation: (timedReservationId: string) => void;
+}
+
+/**
+ * The holder form's defaults, given the two things they depend on: whether
+ * the caller can even choose a holder (`viewerUserId`), and whether this is a
+ * `'timed'` spot's dialog, where the holder is a fixed guest and the
+ * duration a fixed block (`HolderFields`' `timedOnly`).
+ */
+function defaultHolderFormValues(
+  isTimedSpot: boolean,
+  viewerUserId: string | null
+): HolderFormValues {
+  return {
+    holderId: isTimedSpot ? GUEST_HOLDER_VALUE : (viewerUserId ?? ''),
+    guestName: '',
+    licensePlate: '',
+    duration: isTimedSpot ? 'TIMED' : 'FULL_DAY',
+    startTime: '08:00',
+    endTime: '09:00',
+  };
 }
 
 export function SpotDialog({
@@ -161,21 +195,40 @@ export function SpotDialog({
   onJoinWaitlist,
   onLeaveWaitlist,
   onCancelReservation,
+  onReserveTimed,
+  onCancelTimedReservation,
 }: SpotDialogProps) {
   const t = useTranslations('lot');
   const tShell = useTranslations('shell');
   const errors = useTranslations('errors');
   const f = useDateFormatters();
 
+  // A `'timed'` spot's holder is a fixed guest (Task 7's `HolderFields`
+  // `timedOnly`), so the holder form is offered without needing the admin's
+  // user list to have arrived — unlike a free bay's full holder selector,
+  // which does need it (`holderOptions.length > 0`).
+  const isTimedSpot = spot?.appearance === 'timed';
   const showHolderForm =
-    isAdmin && holderOptions.length > 0 && viewerUserId !== null && spot?.action === 'reserve';
+    isAdmin &&
+    viewerUserId !== null &&
+    spot?.action === 'reserve' &&
+    (isTimedSpot || holderOptions.length > 0);
 
   const form = useAppForm<HolderFormValues>({
     schema: holderFormSchema,
-    defaultValues: { holderId: viewerUserId ?? '', guestName: '', licensePlate: '' },
+    defaultValues: defaultHolderFormValues(isTimedSpot, viewerUserId),
   });
   const holderId = form.watch('holderId');
-  const submitHolder = form.handleSubmit((values) => onReserve(toHolderInput(values)));
+  const duration = form.watch('duration');
+  const submitHolder = form.handleSubmit((values) => {
+    const request = toReservationRequest(values);
+    if (request.kind === 'TIMED') {
+      const { kind: _kind, ...block } = request;
+      onReserveTimed(block);
+    } else {
+      onReserve(request.holder);
+    }
+  });
 
   const showQueueTargetForm =
     isAdmin &&
@@ -210,15 +263,17 @@ export function SpotDialog({
   const openSpotId = spot?.spotId ?? null;
   useEffect(() => {
     if (openSpotId === null) return;
-    form.reset({ holderId: viewerUserId ?? '', guestName: '', licensePlate: '' });
+    form.reset(defaultHolderFormValues(isTimedSpot, viewerUserId));
     queueForm.reset({ userId: defaultQueueTargetId(viewerUserId, queueTargetOptions) });
     // `form`/`queueForm` are stable across renders; `.reset` is the documented
     // way to re-seed, and listing them keeps the exhaustive-deps rule satisfied.
     // `queueTargetOptions` is a dependency too, not just `viewerUserId`: the
     // default now depends on whether the viewer is even IN the (filtered)
     // list, and that list can arrive — or change, as the admin opens a
-    // different spot — after this effect has already run once.
-  }, [openSpotId, viewerUserId, queueTargetOptions, form, queueForm]);
+    // different spot — after this effect has already run once. `isTimedSpot`
+    // is a dependency for the same reason: it can change from one open bay to
+    // the next and `defaultHolderFormValues` reads it too.
+  }, [openSpotId, viewerUserId, isTimedSpot, queueTargetOptions, form, queueForm]);
 
   // Same rule `ScreenError` documents: keyed off the contract error's
   // **code**, never its message — a contract message is developer-facing
@@ -271,7 +326,9 @@ export function SpotDialog({
   const description = isInfo
     ? spot.infoReason === 'already-reserved'
       ? t('subInfoAlreadyReserved')
-      : t('subInfo')
+      : spot.infoReason === 'timed'
+        ? t('infoTimedBlocks')
+        : t('subInfo')
     : spot.isMine
       ? canReserve
         ? t('subMine')
@@ -352,8 +409,51 @@ export function SpotDialog({
     >
       {showHolderForm ? (
         <FormProvider {...form}>
-          <HolderFields options={holderOptions} holderId={holderId} />
+          <HolderFields
+            options={holderOptions}
+            holderId={holderId}
+            duration={duration}
+            timedOnly={isTimedSpot}
+          />
         </FormProvider>
+      ) : null}
+
+      {spot.timedBlocks.length > 0 ? (
+        // Guest blocks already on this spot — a `'timed'` appearance never
+        // co-occurs with `isTaken` (`toSpotView`'s precedence), so this and
+        // the taken-holder panel below are mutually exclusive in practice.
+        <Box margin={[0, 0, 5, 0]}>
+          <Box margin={[0, 0, 2, 0]}>
+            <Text size="xs" weight="bold" tone="muted" transform="uppercase" tracking="caps">
+              {t('timedBlocksHeading')}
+            </Text>
+          </Box>
+          <Stack spacing={2}>
+            {spot.timedBlocks.map((block) => (
+              <Stack key={block.id} direction="row" align="center" spacing={3}>
+                <Text size="sm" weight="bold">
+                  {formatTimeRange(block)}
+                </Text>
+                <Text size="sm">{block.guestName}</Text>
+                {block.licensePlate === null ? null : (
+                  <Text size="sm" tone="subtle">
+                    {block.licensePlate}
+                  </Text>
+                )}
+                {isAdmin ? (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    loading={pending}
+                    onClick={() => onCancelTimedReservation(block.id)}
+                  >
+                    {t('timedBlockCancel')}
+                  </Button>
+                ) : null}
+              </Stack>
+            ))}
+          </Stack>
+        </Box>
       ) : null}
 
       {isTaken && spot.holderName !== null ? (

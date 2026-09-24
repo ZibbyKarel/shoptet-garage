@@ -37,6 +37,10 @@ import {
   listSpotsContract,
   updateSpotContract,
 } from './spots';
+import {
+  cancelTimedReservationContract,
+  createTimedReservationContract,
+} from './timed-reservations';
 import { adminListUsersContract, adminUpdateUserContract } from './users';
 import { joinWaitlistContract, leaveWaitlistContract } from './waitlist';
 
@@ -88,6 +92,12 @@ export const contract = {
       create: createSpotContract,
       update: updateSpotContract,
       deactivate: deactivateSpotContract,
+    },
+    timedReservation: {
+      /** Book a spot for a guest for a half-hour-granular block of one day. */
+      create: createTimedReservationContract,
+      /** Remove one block. */
+      cancel: cancelTimedReservationContract,
     },
     user: {
       list: adminListUsersContract,

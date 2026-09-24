@@ -239,6 +239,19 @@ export function LotScreen() {
   }, [invalidateDay]);
 
   /**
+   * `onMutationSuccess` minus closing the dialog — for a write that leaves
+   * the dialog open (`cancelTimedReservation`, below) but must still clear
+   * whatever error a previous attempt left behind, or a stale
+   * `actionError`/`holderLimitMessage` would keep showing under a since-fixed
+   * dialog.
+   */
+  const onMutationSuccessKeepOpen = useCallback(() => {
+    setActionError(null);
+    setHolderLimitMessage(null);
+    invalidateDay();
+  }, [invalidateDay]);
+
+  /**
    * `waitlist.leave`/`reservation.cancel` report a failure the same plain
    * way — clear whatever `holderLimitMessage` a previous write left behind
    * and fall back to the code-mapped catalogue string. `createReservation`
@@ -334,6 +347,22 @@ export function LotScreen() {
     onError: onWriteError,
   });
 
+  const createTimedReservation = useMutation({
+    ...api.admin.timedReservation.create.mutationOptions(),
+    onSuccess: onMutationSuccess,
+    onError: onWriteError,
+  });
+  /**
+   * Unlike every other write here, success does **not** close the dialog: a
+   * `'timed'` spot can carry several guest blocks, and cancelling one should
+   * leave the admin looking at the rest, not bounced back to the grid.
+   */
+  const cancelTimedReservation = useMutation({
+    ...api.admin.timedReservation.cancel.mutationOptions(),
+    onSuccess: onMutationSuccessKeepOpen,
+    onError: onWriteError,
+  });
+
   const counts = useMemo(() => toLotCounts(day?.spots ?? []), [day?.spots]);
 
   const parts = parseDateOnly(date);
@@ -373,7 +402,9 @@ export function LotScreen() {
     createReservation.isPending ||
     cancelReservation.isPending ||
     joinWaitlist.isPending ||
-    leaveWaitlist.isPending;
+    leaveWaitlist.isPending ||
+    createTimedReservation.isPending ||
+    cancelTimedReservation.isPending;
 
   return (
     <>
@@ -501,6 +532,13 @@ export function LotScreen() {
             ?.id;
           if (reservationId === undefined) return;
           cancelReservation.mutate({ reservationId });
+        }}
+        onReserveTimed={(block) => {
+          if (openSpot === null) return;
+          createTimedReservation.mutate({ parkingSpotId: openSpot.spotId, date, ...block });
+        }}
+        onCancelTimedReservation={(timedReservationId) => {
+          cancelTimedReservation.mutate({ timedReservationId });
         }}
       />
     </>

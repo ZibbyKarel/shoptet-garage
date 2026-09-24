@@ -65,6 +65,8 @@ enum AuditLogAction {
   RESERVATION_CREATED_BY_ADMIN
   WAITLIST_JOINED_BY_ADMIN
   RESERVATION_LIMITS_UPDATED
+  TIMED_RESERVATION_CREATED
+  TIMED_RESERVATION_CANCELLED
 }
 
 // --- Entities --------------------------------------------------------------
@@ -111,9 +113,10 @@ model ParkingSpot {
   createdAt DateTime     @default(now()) @db.Timestamptz(3)
   updatedAt DateTime     @updatedAt @db.Timestamptz(3)
 
-  reservations    Reservation[]
-  waitlistEntries WaitlistEntry[]
-  preferredBy     User[]          @relation("UserPreferredSpot")
+  reservations      Reservation[]
+  waitlistEntries   WaitlistEntry[]
+  timedReservations TimedReservation[]
+  preferredBy       User[]             @relation("UserPreferredSpot")
 }
 
 /// One spot booked for one day, by exactly one holder: a user, or a guest.
@@ -146,6 +149,40 @@ model Reservation {
 
   @@unique([parkingSpotId, date])
   @@unique([userId, date])
+  @@index([date])
+}
+
+/// A guest booked into a half-hour-granular block of one day, on one spot.
+///
+/// A separate model from `Reservation`, not a variant of it: a timed block is
+/// always for a guest (no `userId`) and a spot may hold many of them on one
+/// day, whereas `Reservation` is one-per-spot-per-day. Storage is minutes
+/// since local midnight (`[startMinute, endMinute)`, half-open, multiples of
+/// 30, `endMinute` up to `1440`), not the contract's `HH:MM` strings — see
+/// `doc/database.md` (§"Where storage differs from the contract").
+///
+/// One (spot, day) is either one full-day `Reservation` or any number of
+/// non-overlapping `TimedReservation` blocks, never both. Prisma's schema
+/// language cannot express that exclusivity rule or the half-open-range
+/// `CHECK`, so both live in the migration as hand-written SQL: a `CHECK` on
+/// this table and a pair of triggers spanning both tables. See
+/// `doc/decision/0314-*`.
+model TimedReservation {
+  id            String   @id @default(uuid(7)) @db.Uuid
+  parkingSpotId String   @db.Uuid
+  /// Reservation day in Europe/Prague. `DATE`, never a timestamp.
+  date          DateTime @db.Date
+  /// Minutes after local midnight, inclusive. Multiple of 30.
+  startMinute   Int      @db.SmallInt
+  /// Minutes after local midnight, exclusive. Multiple of 30; 1440 = midnight.
+  endMinute     Int      @db.SmallInt
+  guestName     String
+  licensePlate  String?
+  createdAt     DateTime @default(now()) @db.Timestamptz(3)
+
+  parkingSpot ParkingSpot @relation(fields: [parkingSpotId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([parkingSpotId, date])
   @@index([date])
 }
 

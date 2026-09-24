@@ -780,6 +780,7 @@ describe('the contract registries', () => {
       'reservation:cancelled',
       'reservation:created',
       'reservation:reassigned',
+      'timed-reservations:updated',
       'waitlist:updated',
     ]);
   });

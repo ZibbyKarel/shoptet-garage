@@ -136,6 +136,7 @@ export class WaitlistService {
       throw new DomainError('NOT_FOUND', { message: 'No such active parking spot.' });
     }
 
+    const dateColumn = toDateColumn(input.date);
     const [holder] = await tx.$queryRaw<{ id: string; userId: string | null }[]>`
       SELECT "id", "userId"
       FROM "Reservation"
@@ -144,8 +145,18 @@ export class WaitlistService {
       FOR SHARE
     `;
     if (holder === undefined) {
+      // No full-day `Reservation`, but the cell may still carry guest time
+      // blocks (`doc/decision/0314-*`) — that spot is not free either, it
+      // just has no queue: see `WaitlistService.join`'s doc comment and
+      // "A spot with blocks has no queue" in the decision record.
+      const hasBlocks =
+        (await tx.timedReservation.count({
+          where: { parkingSpotId: input.parkingSpotId, date: dateColumn },
+        })) > 0;
       throw new DomainError('SPOT_NOT_OCCUPIED', {
-        message: 'That spot is free — reserve it instead of queueing for it.',
+        message: hasBlocks
+          ? 'That spot has guest time blocks instead of a full-day reservation, and there is no queue for it.'
+          : 'That spot is free — reserve it instead of queueing for it.',
       });
     }
     if (holder.userId === targetUserId) {
@@ -154,7 +165,6 @@ export class WaitlistService {
       });
     }
 
-    const dateColumn = toDateColumn(input.date);
     const own = await tx.reservation.findUnique({
       where: { userId_date: { userId: targetUserId, date: dateColumn } },
       select: { id: true },

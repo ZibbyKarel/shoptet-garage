@@ -25,6 +25,7 @@ function aSpotRow(
     waitlistCount: 0,
     viewerWaitlistEntryId: null,
     viewerWaitlistPosition: null,
+    timedReservations: [],
     ...rest,
   };
 }
@@ -57,6 +58,28 @@ const GUEST_TAKEN = aSpotRow({
     createdAt: TIMESTAMP,
     holder: { kind: 'GUEST', name: 'Jan Novotný', licensePlate: null },
   },
+});
+const TIMED = aSpotRow({
+  id: 's5',
+  label: 'E2.96',
+  timedReservations: [
+    {
+      id: 't1',
+      startTime: '09:00',
+      endTime: '10:30',
+      guestName: 'Jana Dvořáková',
+      licensePlate: null,
+      createdAt: TIMESTAMP,
+    },
+    {
+      id: 't2',
+      startTime: '13:00',
+      endTime: '14:00',
+      guestName: 'Petr Novák',
+      licensePlate: null,
+      createdAt: TIMESTAMP,
+    },
+  ],
 });
 
 function anOverview(overrides: Partial<DayOverviewOutput> = {}): DayOverviewOutput {
@@ -145,6 +168,19 @@ describe('AdminDayScreen', () => {
 
     expect(within(rowOf('s2')).getByText('dayStatusTaken: name=Karel Zíbar')).toBeInTheDocument();
     expect(within(rowOf('s1')).getByText('dayStatusFree')).toBeInTheDocument();
+  });
+
+  it('shows a blocked spot’s guest times, and does not count it as free', () => {
+    renderScreen({
+      day: { kind: 'ready', data: anOverview({ spots: [FREE, TAKEN, TIMED] }) },
+    });
+
+    expect(screen.getByText('dayFree: count=1')).toBeInTheDocument();
+    expect(screen.getByText('dayTaken: count=2')).toBeInTheDocument();
+    expect(
+      within(rowOf('s5')).getByText('dayStatusTimed: times=9:00–10:30, 13:00–14:00')
+    ).toBeInTheDocument();
+    expect(within(rowOf('s5')).queryByText('dayStatusFree')).not.toBeInTheDocument();
   });
 
   it('badges a guest holder, so this table can tell one from an employee', () => {

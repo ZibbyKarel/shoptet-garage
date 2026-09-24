@@ -62,6 +62,7 @@ describe('@garage/contract/realtime', () => {
         'reservationReassignCauseSchema',
         'reservationReassignedEventSchema',
         'roomForDate',
+        'timedReservationsUpdatedEventSchema',
         'waitlistUpdatedEventSchema',
       ].sort()
     );

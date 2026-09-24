@@ -57,6 +57,7 @@ export const AUDIT_ENTITY_TYPES = [
   'ParkingSpot',
   'ReservationWindowSettings',
   'ReservationLimitSettings',
+  'TimedReservation',
 ] as const;
 
 export type AuditEntityType = (typeof AUDIT_ENTITY_TYPES)[number];
@@ -83,6 +84,8 @@ type AuditEntityTypeFor = {
   RESERVATION_LIMITS_UPDATED: 'ReservationLimitSettings';
   RESERVATION_CREATED_BY_ADMIN: 'Reservation';
   WAITLIST_JOINED_BY_ADMIN: 'WaitlistEntry';
+  TIMED_RESERVATION_CREATED: 'TimedReservation';
+  TIMED_RESERVATION_CANCELLED: 'TimedReservation';
 } & Record<AuditLogAction, AuditEntityType>;
 
 /**

@@ -206,6 +206,17 @@ describe('the oRPC transport through the assembled application', () => {
       'admin.reservationLimits.get': () => undefined,
       'admin.reservationLimits.update': () => ({ monthlyReservationCap: 9 }),
       'admin.reservation.month': () => ({ userId: double.users[0]?.id, month: '2026-09' }),
+      'admin.timedReservation.create': () => ({
+        parkingSpotId: double.spots[0]?.id,
+        date: '2026-10-05',
+        startTime: '09:00',
+        endTime: '10:00',
+        guestName: 'FORBIDDEN',
+        licensePlate: null,
+      }),
+      'admin.timedReservation.cancel': () => ({
+        timedReservationId: '0192f5f0-0000-7000-8000-00000000abcd',
+      }),
     };
 
     it('lists exactly the admin procedures the contract declares', () => {

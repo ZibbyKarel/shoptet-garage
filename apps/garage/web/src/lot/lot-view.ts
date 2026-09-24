@@ -34,6 +34,7 @@ import type {
   DaySpotOverview,
   MonthWindowOverview,
   ParkingGroup,
+  PublicTimedReservation,
 } from '@garage/contract';
 import type { RealtimeStatus } from '@garage/realtime-client';
 import { CAR_COLOR_PALETTE } from '@garage/design-system/tokens';
@@ -137,11 +138,20 @@ export interface LotViewContext {
  *   (`if (ruleLocked && !taken) { … modal.info … }`).
  * - `none` — somebody else is editing it. The design returns early on a
  *   locked cell and so does this.
+ *
+ * `'info'` on a `'timed'` spot is the same mechanics as the other two `info`
+ * reasons — no primary button, no cell lock — with its own explanation:
+ * the spot cannot take a full-day reservation while it holds guest blocks.
  */
 export type SpotAction = 'reserve' | 'queue' | 'mine' | 'info' | 'none';
 
-/** How a tile is drawn. Mirrors the design's four `sc-if` branches. */
-export type SpotAppearance = 'free' | 'taken' | 'window-locked' | 'editing';
+/**
+ * How a tile is drawn. Mirrors the design's four `sc-if` branches, plus
+ * `'timed'`: free of a full-day holder but carrying one or more guest blocks
+ * for part of the day (Task 6). Drawn like `'free'` — same frame, no car
+ * glyph — with the blocks' time ranges in place of "Volné".
+ */
+export type SpotAppearance = 'free' | 'taken' | 'window-locked' | 'editing' | 'timed';
 
 export interface SpotView {
   readonly spotId: string;
@@ -178,14 +188,37 @@ export interface SpotView {
   readonly holderIsGuest: boolean;
   /**
    * Which explanation `action === 'info'` is for, or `null` when the action
-   * isn't `'info'`. Both reasons reuse the same dialog mechanics (no primary
-   * button, no cell lock taken — see `lot-screen.tsx`) but need different
-   * copy: `'window-locked'` is "this day/month is closed", `'already-reserved'`
-   * is "you already hold a spot today, cancel it first" — conflating them
-   * would tell a viewer sitting on their own reservation that the *month* is
-   * locked, which is false.
+   * isn't `'info'`. All three reasons reuse the same dialog mechanics (no
+   * primary button, no cell lock taken — see `lot-screen.tsx`) but need
+   * different copy: `'window-locked'` is "this day/month is closed",
+   * `'already-reserved'` is "you already hold a spot today, cancel it
+   * first", `'timed'` is "part of the day is already booked for a guest" —
+   * conflating them would, for instance, tell a viewer sitting on their own
+   * reservation that the *month* is locked, which is false.
    */
-  readonly infoReason: 'window-locked' | 'already-reserved' | null;
+  readonly infoReason: 'window-locked' | 'already-reserved' | 'timed' | null;
+  /**
+   * The guest blocks a `'timed'` spot carries, ascending by `startTime` —
+   * straight from `row.timedReservations`. Empty for every other appearance.
+   */
+  readonly timedBlocks: readonly PublicTimedReservation[];
+}
+
+/**
+ * `'9:00'` — leading zero stripped off the hour (the design never writes
+ * "09:00"), minutes kept as-is. `'24:00'` (midnight, end-of-day) has no
+ * leading zero to strip and is left alone.
+ */
+export function formatTimeOfDay(time: string): string {
+  return time.replace(/^0/, '');
+}
+
+/**
+ * `'9:00–10:30'` — both ends through `formatTimeOfDay`, joined with an en
+ * dash.
+ */
+export function formatTimeRange(block: { startTime: string; endTime: string }): string {
+  return `${formatTimeOfDay(block.startTime)}–${formatTimeOfDay(block.endTime)}`;
 }
 
 /**
@@ -220,8 +253,24 @@ export function toSpotView(row: DaySpotOverview, context: LotViewContext): SpotV
       ? holder.userId === context.viewerUserId
       : false;
 
+  const timedBlocks = row.timedReservations;
+  // The database refuses a full-day `reservation` alongside any guest block
+  // (`doc/decision/0314-*`), so `hasBlocks` and `isTaken` are mutually
+  // exclusive in practice; `reservation === null` here states that rather
+  // than leaning on it.
+  const hasBlocks = reservation === null && timedBlocks.length > 0;
+
+  // Precedence: lock > full-day holder > guest blocks > free / window-locked.
   const appearance: SpotAppearance =
-    lock !== null ? 'editing' : isTaken ? 'taken' : context.canReserve ? 'free' : 'window-locked';
+    lock !== null
+      ? 'editing'
+      : isTaken
+        ? 'taken'
+        : hasBlocks
+          ? 'timed'
+          : context.canReserve
+            ? 'free'
+            : 'window-locked';
 
   // The viewer already holds *some* reservation this day, and it isn't this
   // row: a *new* reserve or queue-join here would only earn a
@@ -249,14 +298,22 @@ export function toSpotView(row: DaySpotOverview, context: LotViewContext): SpotV
           ? viewerBookedElsewhere
             ? 'info'
             : 'reserve'
-          : 'info';
+          : appearance === 'timed'
+            ? context.isAdmin && context.canReserve
+              ? 'reserve'
+              : 'info'
+            : 'info';
 
   const infoReason: SpotView['infoReason'] =
     action !== 'info'
       ? null
       : appearance === 'window-locked'
         ? 'window-locked'
-        : 'already-reserved';
+        : appearance === 'timed'
+          ? context.canReserve
+            ? 'timed'
+            : 'window-locked'
+          : 'already-reserved';
 
   return {
     spotId: row.spot.id,
@@ -279,6 +336,7 @@ export function toSpotView(row: DaySpotOverview, context: LotViewContext): SpotV
     showAdminMenu: context.isAdmin && isTaken,
     holderIsGuest: holder !== null && holder.kind === 'GUEST',
     infoReason,
+    timedBlocks: hasBlocks ? timedBlocks : [],
   };
 }
 
@@ -301,7 +359,8 @@ export interface SpotGroupView {
  * the design's `list.filter(s => !s.name && !s.lockedBy)`. Note it deliberately
  * does **not** consult `canReserve`: a `⊘` tile is still an unoccupied spot,
  * and telling an admin "0 z 4 volných" for a lot they can still book would be
- * wrong.
+ * wrong. A `'timed'` tile is excluded too: it carries guest blocks and cannot
+ * take a full-day reservation, so it is not free in the sense this count means.
  */
 export function toGroupViews(
   rows: readonly DaySpotOverview[],
@@ -317,7 +376,10 @@ export function toGroupViews(
         group,
         spots,
         freeCount: spots.filter(
-          (spot) => spot.appearance !== 'taken' && spot.appearance !== 'editing'
+          (spot) =>
+            spot.appearance !== 'taken' &&
+            spot.appearance !== 'editing' &&
+            spot.appearance !== 'timed'
         ).length,
         totalCount: spots.length,
       },
@@ -339,7 +401,11 @@ export interface LotCounts {
  * opens a form would be noise rather than information.
  */
 export function toLotCounts(rows: readonly DaySpotOverview[]): LotCounts {
-  const taken = rows.filter((row) => row.reservation !== null).length;
+  // A row with guest blocks and no full-day holder still cannot take a
+  // full-day reservation, so the header counts it on the "taken" side too.
+  const taken = rows.filter(
+    (row) => row.reservation !== null || row.timedReservations.length > 0
+  ).length;
   return { free: rows.length - taken, taken };
 }
 

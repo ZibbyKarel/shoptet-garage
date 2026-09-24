@@ -32,6 +32,7 @@ describe('daySpotOverviewSchema', () => {
     waitlistCount: 0,
     viewerWaitlistEntryId: null,
     viewerWaitlistPosition: null,
+    timedReservations: [],
   };
 
   it('accepts a free spot', () => {
@@ -65,6 +66,30 @@ describe('daySpotOverviewSchema', () => {
       false
     );
   });
+
+  it('accepts a spot carrying guest blocks', () => {
+    expect(
+      daySpotOverviewSchema.safeParse({
+        ...free,
+        timedReservations: [
+          {
+            id: UUID_A,
+            startTime: '09:00',
+            endTime: '10:30',
+            guestName: 'Jan Host',
+            licensePlate: null,
+            createdAt: TIMESTAMP,
+          },
+        ],
+      }).success
+    ).toBe(true);
+  });
+
+  it('requires timedReservations — a spot cannot omit it and imply empty', () => {
+    const withoutTimed: Record<string, unknown> = { ...free };
+    delete withoutTimed['timedReservations'];
+    expect(daySpotOverviewSchema.safeParse(withoutTimed).success).toBe(false);
+  });
 });
 
 describe('dayOverviewOutputSchema', () => {
@@ -86,6 +111,7 @@ describe('dayOverviewOutputSchema', () => {
         waitlistCount: 0,
         viewerWaitlistEntryId: null,
         viewerWaitlistPosition: null,
+        timedReservations: [],
       },
     ],
     viewerReservationId: null,

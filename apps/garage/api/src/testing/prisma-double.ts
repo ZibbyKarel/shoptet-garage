@@ -38,6 +38,7 @@ import type {
   Reservation as ReservationRow,
   ReservationLimitSettings as LimitSettingsRow,
   ReservationWindowSettings as WindowSettingsRow,
+  TimedReservation as TimedReservationRow,
   User as UserRow,
   WaitlistEntry as WaitlistEntryRow,
 } from '@garage/database';
@@ -193,6 +194,18 @@ export interface WaitlistSeed {
   createdAt?: Date;
 }
 
+export interface TimedReservationSeed {
+  id?: string;
+  parkingSpotId: string;
+  /** `YYYY-MM-DD`. */
+  date: string;
+  startMinute: number;
+  endMinute: number;
+  guestName?: string;
+  licensePlate?: string | null;
+  createdAt?: Date;
+}
+
 const EPOCH = new Date('2026-01-01T00:00:00.000Z');
 
 /**
@@ -216,6 +229,7 @@ export class PrismaDouble {
   readonly users: UserRow[] = [];
   readonly reservations: ReservationRow[] = [];
   readonly waitlist: WaitlistEntryRow[] = [];
+  readonly timedReservations: TimedReservationRow[] = [];
   readonly auditLogs: AuditLogRow[] = [];
   /**
    * How many `auditLog.createMany` statements were issued.
@@ -256,6 +270,7 @@ export class PrismaDouble {
     this.users.length = 0;
     this.reservations.length = 0;
     this.waitlist.length = 0;
+    this.timedReservations.length = 0;
     this.auditLogs.length = 0;
     this.auditLogCreateManyCalls = 0;
     this.windowSettings = null;
@@ -325,6 +340,21 @@ export class PrismaDouble {
     return row;
   }
 
+  seedTimedReservation(seed: TimedReservationSeed): TimedReservationRow {
+    const row: TimedReservationRow = {
+      id: seed.id ?? randomUUID(),
+      parkingSpotId: seed.parkingSpotId,
+      date: new Date(`${seed.date}T00:00:00.000Z`),
+      startMinute: seed.startMinute,
+      endMinute: seed.endMinute,
+      guestName: seed.guestName ?? 'Guest',
+      licensePlate: seed.licensePlate ?? null,
+      createdAt: seed.createdAt ?? EPOCH,
+    };
+    this.timedReservations.push(row);
+    return row;
+  }
+
   seedWindowSettings(settings: Partial<Omit<WindowSettingsRow, 'id'>> = {}): WindowSettingsRow {
     this.windowSettings = {
       id: WINDOW_SETTINGS_ID,
@@ -357,6 +387,7 @@ export class PrismaDouble {
       user: this.userDelegate(),
       reservation: this.reservationDelegate(),
       waitlistEntry: this.waitlistDelegate(),
+      timedReservation: this.timedReservationDelegate(),
       reservationWindowSettings: this.windowSettingsDelegate(),
       reservationLimitSettings: this.limitSettingsDelegate(),
       auditLog: this.auditLogDelegate(),
@@ -617,6 +648,46 @@ export class PrismaDouble {
           return unsupported('a waitlist count without a `date.gte` bound', args.where);
         }
         return this.waitlist.filter(
+          (row) =>
+            row.parkingSpotId === args.where.parkingSpotId && row.date.getTime() >= gte.getTime()
+        ).length;
+      },
+    };
+  }
+
+  private timedReservationDelegate() {
+    return {
+      findMany: async (args: {
+        where: { date: Date; parkingSpotId?: string };
+        orderBy?: unknown;
+      }) => {
+        const target = args.where.date.getTime();
+        const rows = this.timedReservations
+          .filter((row) => row.date.getTime() === target)
+          .filter(
+            (row) =>
+              args.where.parkingSpotId === undefined ||
+              row.parkingSpotId === args.where.parkingSpotId
+          );
+        const requested = JSON.stringify(args.orderBy);
+        if (args.orderBy === undefined) {
+          return rows.map(copy);
+        }
+        if (requested !== JSON.stringify({ startMinute: 'asc' })) {
+          return unsupported('this timed reservation ordering', args.orderBy);
+        }
+        return [...rows].sort((a, b) => a.startMinute - b.startMinute).map(copy);
+      },
+      // `SpotsService.requireNoFutureCommitments`, which counts guest blocks
+      // from today onwards alongside reservations and waitlist entries. Same
+      // `date.gte` shape as the other two counts, and refused the same way if
+      // it is missing.
+      count: async (args: { where: { parkingSpotId: string; date: { gte: Date } } }) => {
+        const gte = args.where.date?.gte;
+        if (!(gte instanceof Date)) {
+          return unsupported('a timed reservation count without a `date.gte` bound', args.where);
+        }
+        return this.timedReservations.filter(
           (row) =>
             row.parkingSpotId === args.where.parkingSpotId && row.date.getTime() >= gte.getTime()
         ).length;

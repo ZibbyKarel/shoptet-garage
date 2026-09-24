@@ -44,6 +44,7 @@ export {
   type ConfirmBulkOutput,
 } from './bulk';
 export * from './spots';
+export * from './timed-reservations';
 export * from './users';
 export * from './me';
 export * from './reservation-limits';

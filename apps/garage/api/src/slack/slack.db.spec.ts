@@ -244,6 +244,7 @@ describe('Slack over a real database', () => {
       const holder = await seedUser(client);
       const waiter = await seedUser(client);
       const taken = await seedSpot(client, { labelPrefix: 'TAKEN' });
+      const blocked = await seedSpot(client, { labelPrefix: 'BLOCKED' });
       const free = await seedSpot(client, { labelPrefix: 'FREE' });
       const day = '2099-02-02';
       await client.reservation.create({
@@ -251,6 +252,17 @@ describe('Slack over a real database', () => {
           parkingSpotId: taken.id,
           userId: holder.id,
           date: new Date(`${day}T00:00:00.000Z`),
+        },
+      });
+      // A guest time block (`doc/decision/0314-*`) has no `Reservation` row
+      // at all, so the digest must not count this spot free either.
+      await client.timedReservation.create({
+        data: {
+          parkingSpotId: blocked.id,
+          date: new Date(`${day}T00:00:00.000Z`),
+          startMinute: 9 * 60,
+          endMinute: 10 * 60,
+          guestName: 'Guest',
         },
       });
       await client.waitlistEntry.create({
@@ -271,6 +283,7 @@ describe('Slack over a real database', () => {
       expect(text).toContain(`z ${activeSpots}:`);
       expect(text).toContain(free.label);
       expect(text).not.toContain(taken.label);
+      expect(text).not.toContain(blocked.label);
       expect(text).toContain('Ve frontě čeká 1 člověk.');
     });
   });

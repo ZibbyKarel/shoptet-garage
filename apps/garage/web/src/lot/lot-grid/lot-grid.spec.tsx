@@ -29,6 +29,7 @@ function spot(overrides: Partial<SpotView> = {}): SpotView {
     showAdminMenu: false,
     holderIsGuest: false,
     infoReason: null,
+    timedBlocks: [],
     ...overrides,
   };
 }
@@ -264,6 +265,44 @@ describe('LotGrid', () => {
   it('draws no waitlist pill for an empty queue', () => {
     renderGrid([group([spot({ waitlistCount: 0 })])]);
     expect(screen.queryByText(/ve frontě/u)).not.toBeInTheDocument();
+  });
+
+  it('draws a timed bay with its blocks, capped at two lines plus a count', () => {
+    const timedBlocks = [
+      {
+        id: 't1',
+        startTime: '09:00',
+        endTime: '10:30',
+        guestName: 'A',
+        licensePlate: null,
+        createdAt: '',
+      },
+      {
+        id: 't2',
+        startTime: '13:00',
+        endTime: '14:00',
+        guestName: 'B',
+        licensePlate: null,
+        createdAt: '',
+      },
+      {
+        id: 't3',
+        startTime: '15:00',
+        endTime: '15:30',
+        guestName: 'C',
+        licensePlate: null,
+        createdAt: '',
+      },
+    ];
+    renderGrid([group([spot({ appearance: 'timed', action: 'info', timedBlocks })])]);
+
+    expect(screen.getByText('9:00–10:30')).toBeInTheDocument();
+    expect(screen.getByText('13:00–14:00')).toBeInTheDocument();
+    expect(screen.queryByText('15:00–15:30')).not.toBeInTheDocument();
+    expect(screen.getByText('tileMoreBlocks: count=1')).toBeInTheDocument();
+    expect(screen.getByRole('button')).toHaveAccessibleName(
+      'tileTimedLabel: label=E2.92,times=9:00–10:30, 13:00–14:00, 15:00–15:30'
+    );
   });
 
   it('routes the ⋯ menu to its own callback, not to the tile’s', async () => {

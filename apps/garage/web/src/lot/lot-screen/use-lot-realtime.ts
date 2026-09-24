@@ -24,12 +24,18 @@ import {
   applyReservationCancelled,
   applyReservationCreated,
   applyReservationReassigned,
+  applyTimedReservationsUpdated,
   applyWaitlistUpdated,
   reservationCancelledTouchesViewer,
   reservationCreatedTouchesViewer,
   reservationReassignedTouchesViewer,
   waitlistUpdatedTouchesViewer,
 } from './day-overview-cache';
+
+/** No viewer-relative field ever depends on a guest block — see `applyTimedReservationsUpdated`. */
+function neverTouchesViewer(): boolean {
+  return false;
+}
 
 export interface LotRealtimeOptions {
   /** The day on screen. `null` while there is none — no room is joined. */
@@ -123,6 +129,16 @@ export function useLotRealtime({ date, viewerUserId }: LotRealtimeOptions): void
     useCallback(
       (event) => {
         handle(event, applyWaitlistUpdated, waitlistUpdatedTouchesViewer);
+      },
+      [handle]
+    )
+  );
+
+  useRealtimeEvent(
+    'timed-reservations:updated',
+    useCallback(
+      (event) => {
+        handle(event, applyTimedReservationsUpdated, neverTouchesViewer);
       },
       [handle]
     )
