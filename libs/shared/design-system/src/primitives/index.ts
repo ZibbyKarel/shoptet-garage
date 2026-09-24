@@ -1,5 +1,6 @@
 export * from './lib/avatar/avatar';
 export * from './lib/badge/badge';
+export * from './lib/bolt-icon/bolt-icon';
 export * from './lib/box/box';
 export * from './lib/button/button';
 export * from './lib/callout/callout';
