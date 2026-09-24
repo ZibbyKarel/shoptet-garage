@@ -138,6 +138,42 @@ describe('the waitlist against a real PostgreSQL', () => {
       ]);
     });
 
+    it('refuses a normal user a hidden spot’s queue with NOT_FOUND, and lets an admin queue them', async () => {
+      const [holder, waiter, admin] = [
+        await seedUser(client),
+        await seedUser(client),
+        await seedUser(client),
+      ];
+      const hidden = await seedSpot(client, { hidden: true });
+      await harness.reservations.create(
+        {
+          parkingSpotId: hidden.id,
+          date: FUTURE_BUSINESS_DAY,
+          holder: { kind: 'USER', userId: holder.id, licensePlate: null },
+        },
+        actorFor(admin, 'ADMIN'),
+        TODAY
+      );
+
+      await expect(
+        codeOf(
+          harness.waitlist.join(
+            { parkingSpotId: hidden.id, date: FUTURE_BUSINESS_DAY },
+            actorFor(waiter),
+            TODAY
+          )
+        )
+      ).resolves.toBe('NOT_FOUND');
+
+      await expect(
+        harness.waitlist.join(
+          { parkingSpotId: hidden.id, date: FUTURE_BUSINESS_DAY, holderId: waiter.id },
+          actorFor(admin, 'ADMIN'),
+          TODAY
+        )
+      ).resolves.toMatchObject({ position: 1, entry: { userId: waiter.id } });
+    });
+
     it('refuses a free spot — reserve it instead', async () => {
       const [user, spot] = [await seedUser(client), await seedSpot(client)];
 

@@ -73,6 +73,26 @@ describe('admin.timedReservation.* against a real PostgreSQL', () => {
     publisher.reset();
   });
 
+  it('lets an admin book a guest block on a hidden spot', async () => {
+    const admin = await seedUser(client);
+    const hidden = await seedSpot(client, { hidden: true });
+
+    await expect(
+      timedReservations.create(
+        {
+          parkingSpotId: hidden.id,
+          date: FUTURE_BUSINESS_DAY,
+          startTime: '13:00',
+          endTime: '14:00',
+          guestName: 'Hidden Guest',
+          licensePlate: null,
+        },
+        actorFor(admin, 'ADMIN'),
+        TODAY
+      )
+    ).resolves.toMatchObject({ guestName: 'Hidden Guest' });
+  });
+
   it('books a half-hour block, audits it and broadcasts the one-block list', async () => {
     const [admin, spot] = [await seedUser(client), await seedSpot(client)];
 

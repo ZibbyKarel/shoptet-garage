@@ -143,6 +143,33 @@ describe('reservations against a real PostgreSQL', () => {
       ).resolves.toBe('NOT_FOUND');
     });
 
+    it('refuses a hidden spot to a normal user with NOT_FOUND, and lets an admin book it for a guest', async () => {
+      const [user, admin] = [await seedUser(client), await seedUser(client)];
+      const hidden = await seedSpot(client, { hidden: true });
+
+      await expect(
+        codeOf(
+          harness.reservations.create(
+            { parkingSpotId: hidden.id, date: FUTURE_BUSINESS_DAY },
+            actorFor(user),
+            TODAY
+          )
+        )
+      ).resolves.toBe('NOT_FOUND');
+
+      await expect(
+        harness.reservations.create(
+          {
+            parkingSpotId: hidden.id,
+            date: FUTURE_BUSINESS_DAY,
+            holder: { kind: 'GUEST', name: 'Jan Host', licensePlate: null },
+          },
+          actorFor(admin, 'ADMIN'),
+          TODAY
+        )
+      ).resolves.toMatchObject({ parkingSpotId: hidden.id, userId: null, guestName: 'Jan Host' });
+    });
+
     it('refuses a weekend', async () => {
       const [user, spot] = [await seedUser(client), await seedSpot(client)];
 

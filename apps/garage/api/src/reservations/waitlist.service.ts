@@ -130,9 +130,11 @@ export class WaitlistService {
   ): Promise<WaitlistOutcome<JoinWaitlistOutput>> {
     const spot = await tx.parkingSpot.findUnique({
       where: { id: input.parkingSpotId },
-      select: { id: true, active: true },
+      select: { id: true, active: true, hidden: true },
     });
-    if (spot === null || !spot.active) {
+    // Same rule as `ReservationsService.create`: a hidden spot's queue is
+    // reachable only through an admin (`doc/decision/0316-*`).
+    if (spot === null || !spot.active || (spot.hidden && actor.role !== 'ADMIN')) {
       throw new DomainError('NOT_FOUND', { message: 'No such active parking spot.' });
     }
 

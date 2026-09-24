@@ -175,9 +175,11 @@ export class ReservationsService {
 
     const spot = await this.prisma.client.parkingSpot.findUnique({
       where: { id: input.parkingSpotId },
-      select: { id: true, active: true },
+      select: { id: true, active: true, hidden: true },
     });
-    if (spot === null || !spot.active) {
+    // A hidden spot is the admins' (`doc/decision/0316-hidden-spots-are-seen-and-booked-by-admins-only`):
+    // to anybody else it does not exist, hence the same answer as a retired one.
+    if (spot === null || !spot.active || (spot.hidden && actor.role !== 'ADMIN')) {
       throw new DomainError('NOT_FOUND', { message: 'No such active parking spot.' });
     }
 

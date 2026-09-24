@@ -525,7 +525,10 @@ export class BulkReservationService {
 
     const [spots, holder, reservations, waitlist, timedReservations] = await Promise.all([
       client.parkingSpot.findMany({
-        where: { active: true },
+        // Hidden spots are never assigned or queued by a batch, whoever asks
+        // (`doc/decision/0316-*`) — a preferred spot that is hidden simply
+        // misses, and the allocator falls back as for a taken one.
+        where: { active: true, hidden: false },
         select: { id: true, label: true, group: true },
       }),
       // `preferredParkingSpotId` and the plate are row facts, not token claims —

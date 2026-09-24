@@ -148,17 +148,19 @@ export class MeService {
   }
 
   /**
-   * A preferred spot must exist (`NOT_FOUND`) and be active
+   * A preferred spot must exist and be visible (`NOT_FOUND`) and be active
    * (`VALIDATION_FAILED`).
    *
    * The two are separate codes because they are separate situations for the
    * person at the screen: an id that does not exist is a stale client, while a
-   * retired spot is a real spot they can see was taken out of service.
+   * retired spot is a real spot they can see was taken out of service. A
+   * hidden spot answers as a missing one: bulk booking never assigns it, and
+   * to a normal user it does not exist (`doc/decision/0316-*`).
    */
   private async requireSelectableSpot(spotId: string): Promise<void> {
     const spot = await this.prisma.client.parkingSpot.findUnique({ where: { id: spotId } });
 
-    if (spot === null) {
+    if (spot === null || spot.hidden) {
       throw new DomainError('NOT_FOUND', { message: 'No such parking spot.' });
     }
     if (!spot.active) {
