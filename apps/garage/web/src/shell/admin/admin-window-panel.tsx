@@ -23,9 +23,9 @@ import { AdminWindowScreen } from './admin-window-screen/admin-window-screen';
  * How many months the list shows, counting the current one.
  *
  * Four, because that is what the design draws (srpen–listopad from a day in
- * August) and because it spans every state a month can be in: the current month
- * is always `LOCKED`, the next is the one whose window is opening, and the two
- * after it are `NOT_YET_OPEN`. Well inside the contract's
+ * August) and because it spans every state `AUTO` produces: the current month
+ * is running (`OPEN`, no cap), the next is the one whose window is opening, and
+ * the two after it are `NOT_YET_OPEN`. Well inside the contract's
  * `MAX_MONTH_WINDOW_SPAN`.
  */
 const MONTHS_LISTED = 4;
