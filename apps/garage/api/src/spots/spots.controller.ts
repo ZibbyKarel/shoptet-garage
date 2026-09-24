@@ -28,7 +28,7 @@ export class SpotsController {
     this.rpc = new RpcRouteHandler(
       {
         spot: {
-          list: implementer.spot.list.handler(async () => ({ spots: await spots.listActive() })),
+          list: implementer.spot.list.handler(async () => ({ spots: await spots.listVisible() })),
         },
         admin: {
           spot: {
@@ -51,7 +51,7 @@ export class SpotsController {
     );
   }
 
-  /** Active spots. Any authenticated user. */
+  /** Active, non-hidden spots. Any authenticated user. */
   @RpcRoute('spot', 'list')
   listSpots(): Promise<void> {
     throw new Error('replaced by @RpcRoute');

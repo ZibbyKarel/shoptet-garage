@@ -18,6 +18,7 @@ function aSpotRow(
       label,
       group: 'IT',
       active: true,
+      hidden: false,
       createdAt: TIMESTAMP,
       updatedAt: TIMESTAMP,
     },
@@ -57,6 +58,19 @@ const GUEST_TAKEN = aSpotRow({
     id: 'r3',
     createdAt: TIMESTAMP,
     holder: { kind: 'GUEST', name: 'Jan Novotný', licensePlate: null },
+  },
+});
+const HIDDEN = aSpotRow({
+  id: 's6',
+  label: 'E2.97',
+  spot: {
+    id: 's6',
+    label: 'E2.97',
+    group: 'IT',
+    active: true,
+    hidden: true,
+    createdAt: TIMESTAMP,
+    updatedAt: TIMESTAMP,
   },
 });
 const TIMED = aSpotRow({
@@ -191,6 +205,15 @@ describe('AdminDayScreen', () => {
     expect(within(rowOf('s4')).getByText('dayStatusTaken: name=Jan Novotný')).toBeInTheDocument();
     expect(within(rowOf('s4')).getByText('guestHolder')).toBeInTheDocument();
     expect(within(rowOf('s2')).queryByText('guestHolder')).not.toBeInTheDocument();
+  });
+
+  it('marks a hidden spot in the label column, and leaves a visible one unmarked', () => {
+    renderScreen({
+      day: { kind: 'ready', data: anOverview({ spots: [FREE, HIDDEN] }) },
+    });
+
+    expect(within(rowOf('s6')).getByText('hiddenSpot')).toBeInTheDocument();
+    expect(within(rowOf('s1')).queryByText('hiddenSpot')).not.toBeInTheDocument();
   });
 
   it('shows how many people are queued, and says so when nobody is', () => {

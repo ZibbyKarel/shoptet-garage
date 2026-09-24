@@ -35,6 +35,7 @@ import { MAX_DAY_ROOMS_PER_SOCKET, RealtimeGateway } from './realtime.gateway';
 import { RealtimeTestClient } from './testing/realtime-test-client';
 import type { RealtimeTestApp } from './testing/realtime-test-app';
 import { seedEmployee, startRealtimeTestApp } from './testing/realtime-test-app';
+import { SpotsService } from '../spots/spots.service';
 
 const LOCK_TTL_MS = 800;
 const DAY = '2026-09-15';
@@ -51,6 +52,8 @@ describe('the realtime gateway', () => {
   let harness: RealtimeTestApp;
   let alice: Employee;
   let bob: Employee;
+  let carol: Employee;
+  let dave: Employee;
   const open: RealtimeTestClient[] = [];
   const originalEnv = { ...process.env };
 
@@ -120,6 +123,8 @@ describe('the realtime gateway', () => {
       licensePlate: '1AB 2345',
     });
     bob = seedEmployee(harness.double, { oktaId: 'okta-bob', name: 'Bob' });
+    carol = seedEmployee(harness.double, { oktaId: 'okta-carol', name: 'Carol', role: 'ADMIN' });
+    dave = seedEmployee(harness.double, { oktaId: 'okta-dave', name: 'Dave', role: 'ADMIN' });
   });
 
   afterEach(async () => {
@@ -215,6 +220,123 @@ describe('the realtime gateway', () => {
       // the cap plus that one. `toBe`, not `toBeLessThanOrEqual`: a gateway
       // that joined no rooms at all would also satisfy the looser assertion.
       expect(socketRoomCount(client)).toBe(MAX_DAY_ROOMS_PER_SOCKET + 1);
+    });
+  });
+
+  describe('a hidden spot', () => {
+    /** A spot hidden the way an admin hides one, so the gateway's view is current. */
+    async function hiddenCell(): Promise<{ date: string; parkingSpotId: string }> {
+      const spot = harness.double.seedSpot({ label: `HIDDEN-${randomUUID().slice(0, 8)}` });
+      await harness.app.get(SpotsService).update({ id: spot.id, hidden: true }, carol.id);
+      return { date: DAY, parkingSpotId: spot.id };
+    }
+
+    it('broadcasts its domain events to admins in the room and to nobody else', async () => {
+      const admin = await connectAs(carol);
+      const user = await connectAs(alice);
+      await watch(admin, DAY);
+      await watch(user, DAY);
+      const cell = await hiddenCell();
+
+      publish('waitlist:updated', { ...cell, waitlistCount: 2 });
+
+      await expect(
+        admin.waitForEvent(
+          'waitlist:updated',
+          (p: { parkingSpotId: string }) => p.parkingSpotId === cell.parkingSpotId
+        )
+      ).resolves.toEqual({ ...cell, waitlistCount: 2 });
+      await settle();
+      expect(
+        user.received.filter(
+          (event) =>
+            (event.payload as { parkingSpotId?: string }).parkingSpotId === cell.parkingSpotId
+        )
+      ).toHaveLength(0);
+    });
+
+    it('tells another admin, and no normal user, that an admin is editing it', async () => {
+      const editor = await connectAs(carol);
+      const otherAdmin = await connectAs(dave);
+      const user = await connectAs(alice);
+      await watch(otherAdmin, DAY);
+      await watch(user, DAY);
+      const cell = await hiddenCell();
+
+      await expect(editor.emitWithAck('cell:lock', cell)).resolves.toMatchObject({
+        result: 'ACQUIRED',
+      });
+
+      await otherAdmin.waitForEvent(
+        'cell:locked',
+        (p: { parkingSpotId: string }) => p.parkingSpotId === cell.parkingSpotId
+      );
+      await settle();
+      expect(
+        user.received.filter(
+          (event) =>
+            (event.payload as { parkingSpotId?: string }).parkingSpotId === cell.parkingSpotId
+        )
+      ).toHaveLength(0);
+    });
+
+    it("refuses a normal user's cell:lock on a hidden spot, but still lets an admin take it", async () => {
+      const user = await connectAs(alice);
+      const admin = await connectAs(carol);
+      const cell = await hiddenCell();
+
+      // No ack at all — the same silent drop as an invalid payload, so the
+      // caller learns nothing: not that the spot exists, and not who holds
+      // it.
+      await expect(user.emitWithAck('cell:lock', cell, 400)).rejects.toThrow(/No acknowledgement/);
+      expect(user.received.filter((event) => event.name === 'cell:locked')).toHaveLength(0);
+
+      // The refusal did not take the lock: an admin can still acquire it.
+      await expect(admin.emitWithAck('cell:lock', cell)).resolves.toMatchObject({
+        result: 'ACQUIRED',
+      });
+    });
+
+    it('broadcasts its unlock to admins in the room and to nobody else', async () => {
+      const editor = await connectAs(carol);
+      const otherAdmin = await connectAs(dave);
+      const user = await connectAs(alice);
+      await watch(otherAdmin, DAY);
+      await watch(user, DAY);
+      const cell = await hiddenCell();
+
+      await editor.emitWithAck('cell:lock', cell);
+      editor.emit('cell:unlock', cell);
+
+      await otherAdmin.waitForEvent(
+        'cell:unlocked',
+        (p: { parkingSpotId: string }) => p.parkingSpotId === cell.parkingSpotId
+      );
+      await settle();
+      expect(
+        user.received.filter(
+          (event) =>
+            (event.payload as { parkingSpotId?: string }).parkingSpotId === cell.parkingSpotId
+        )
+      ).toHaveLength(0);
+    });
+
+    it('still reaches everybody once it is unhidden', async () => {
+      const user = await connectAs(alice);
+      await watch(user, DAY);
+      const cell = await hiddenCell();
+      await harness.app
+        .get(SpotsService)
+        .update({ id: cell.parkingSpotId, hidden: false }, carol.id);
+
+      publish('waitlist:updated', { ...cell, waitlistCount: 1 });
+
+      await expect(
+        user.waitForEvent(
+          'waitlist:updated',
+          (p: { parkingSpotId: string }) => p.parkingSpotId === cell.parkingSpotId
+        )
+      ).resolves.toEqual({ ...cell, waitlistCount: 1 });
     });
   });
 

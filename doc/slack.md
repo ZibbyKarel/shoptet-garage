@@ -8,9 +8,9 @@ health, shutdown), `doc/waitlist.md` (the promotion this notifies about),
 
 Everything lives in two modules:
 
-| Directory | What it owns |
-| --- | --- |
-| `apps/garage/api/src/slack/` | the Slack client, the Czech copy, the three notifications, the daily-summary job |
+| Directory                         | What it owns                                                                                   |
+| --------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `apps/garage/api/src/slack/`      | the Slack client, the Czech copy, the three notifications, the daily-summary job               |
 | `apps/garage/api/src/scheduling/` | `ScheduleModule.forRoot()` and `ScheduledJobRunner` — scheduling, which is not a Slack concept |
 
 ---
@@ -31,7 +31,7 @@ Two Slack methods are called, both outbound:
 - `users.lookupByEmail` — to find the Slack account for a promoted user.
 
 `slack.module.spec.ts` also pins that every `@slack/web-api` import in
-`apps/garage/api` is inside `slack/`, and that exactly one *shipped* file constructs a
+`apps/garage/api` is inside `slack/`, and that exactly one _shipped_ file constructs a
 `WebClient`.
 
 ---
@@ -42,18 +42,19 @@ All copy is **Czech** (`doc/decision/0029-*`), plain text, and lives in
 `apps/garage/api/src/slack/slack-messages.ts` — see `doc/decision/0131-*` for why it is
 there and not in `libs/shared/i18n`.
 
-| Trigger | Destination | Message |
-| --- | --- | --- |
-| a cancellation that left the spot free | `SLACK_CHANNEL_ID` | `Uvolnilo se parkovací místo E2.92 na pondělí 28. září 2026. Je volné pro kohokoli.` |
-| a waitlist promotion | direct message to the promoted user | `Máte parkovací místo E2.92 na pondělí 28. září 2026. Uvolnilo se a byli jste první ve frontě.` |
-| the daily summary | `SLACK_CHANNEL_ID` | `Parkování — pondělí 28. září 2026` + `Volná jsou 3 místa z 9: A1, A2, A3. Ve frontě čekají 2 lidé.` |
+| Trigger                                | Destination                         | Message                                                                                              |
+| -------------------------------------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| a cancellation that left the spot free | `SLACK_CHANNEL_ID`                  | `Uvolnilo se parkovací místo E2.92 na pondělí 28. září 2026. Je volné pro kohokoli.`                 |
+| a waitlist promotion                   | direct message to the promoted user | `Máte parkovací místo E2.92 na pondělí 28. září 2026. Uvolnilo se a byli jste první ve frontě.`      |
+| the daily summary                      | `SLACK_CHANNEL_ID`                  | `Parkování — pondělí 28. září 2026` + `Volná jsou 3 místa z 9: A1, A2, A3. Ve frontě čekají 2 lidé.` |
 
 **Why "a spot came free" is exactly `reservation:cancelled`.** The realtime
 contract already decided this: a cancellation that promoted somebody emits
-`reservation:reassigned` *instead of* `reservation:cancelled`, never both
+`reservation:reassigned` _instead of_ `reservation:cancelled`, never both
 (`libs/garage/contract/src/realtime/events.ts`). So filtering on `reservation:cancelled`
 cannot announce a spot that was taken in the same transaction, and nothing in
-`SlackDomainEventPublisher` re-derives that rule.
+`SlackDomainEventPublisher` re-derives that rule. Not sent for a hidden spot
+(`doc/decision/0316-*`).
 
 **Czech numeral agreement is real work.** `místo` / `místa` / `míst` and
 `čeká` / `čekají` change with the count, in three classes (1, 2–4, 5+). Every
@@ -94,7 +95,7 @@ Three properties of that placement matter, and each is exercised:
   proves `COMMIT` had happened first.
 - **A retried transaction publishes once, not once per retry.** `cancel`
   publishes outside the retry loop, so a transaction that lost a race and was
-  retried does not call `SlackClient` twice. This is a *domain-layer* property
+  retried does not call `SlackClient` twice. This is a _domain-layer_ property
   — how many times `SlackClient.postToChannel` gets called per cancellation —
   and a narrower one than "exactly once end to end": §4 covers what a single
   call can still do at the HTTP layer, which is at-least-once, not
@@ -136,7 +137,7 @@ delegate throw rather than argued in prose
   handler). The composite contains a returned promise's rejection into the same
   log line, without awaiting it. A delegate with real async work should do what
   `SlackDomainEventPublisher` does — detach, catch, and track in `inFlight` for
-  the shutdown drain — because a promise handed to the composite is *not*
+  the shutdown drain — because a promise handed to the composite is _not_
   drained at shutdown.
 
 Nothing rethrows: the seam is called on the request's way out, and a user told
@@ -165,13 +166,13 @@ Slack answers an application-level failure with **`200 OK` and
 `WebAPIPlatformError`. Distinguishing that from an HTTP failure is the whole
 policy:
 
-| Slack did this | Retryable | Why |
-| --- | --- | --- |
-| `200 {"ok": false, "error": "channel_not_found"}` | no | Slack understood us and said no. So will the next two calls. |
-| `429` with `Retry-After` | yes, after that many seconds | Slack said when to come back. |
-| `500` / `503` | yes, exponential backoff | The server's problem, and it may pass. |
-| `400` / `404` | no | Ours, and it will not. |
-| connection reset, timeout | yes | No answer *yet* — not the same as no request in flight; see below. |
+| Slack did this                                    | Retryable                    | Why                                                                |
+| ------------------------------------------------- | ---------------------------- | ------------------------------------------------------------------ |
+| `200 {"ok": false, "error": "channel_not_found"}` | no                           | Slack understood us and said no. So will the next two calls.       |
+| `429` with `Retry-After`                          | yes, after that many seconds | Slack said when to come back.                                      |
+| `500` / `503`                                     | yes, exponential backoff     | The server's problem, and it may pass.                             |
+| `400` / `404`                                     | no                           | Ours, and it will not.                                             |
+| connection reset, timeout                         | yes                          | No answer _yet_ — not the same as no request in flight; see below. |
 
 The SDK's own ten-retries-over-thirty-minutes policy is switched off
 (`retryConfig: { retries: 0 }`) so this one is ours and is testable. So is the
@@ -189,18 +190,18 @@ error object, for the branch in isolation from any transport.)
 A timeout means "no answer arrived within `SLACK_REQUEST_TIMEOUT_MS`", not "no
 request reached Slack". The moment `withRetries`' own timer decides an
 attempt has failed, it calls `AbortController.abort()` on that attempt's
-connection — *before* logging, *before* the backoff sleep, *before* the retry
+connection — _before_ logging, _before_ the backoff sleep, _before_ the retry
 is sent — so a request that is still being classified as timed-out never has
 the chance to also be the one that lands after its retry already succeeded.
 
 That is the strongest guarantee a client-side timeout can honestly make. It is
 **not** exactly-once, and nothing running only on this side of the network
 could make it so: if the original request had already reached Slack and been
-accepted *before* the timer fired, aborting the connection afterwards cannot
+accepted _before_ the timer fired, aborting the connection afterwards cannot
 un-send it — Slack, not this process, decided the outcome first. A duplicate
 under this policy requires specifically that timing: a response slow enough to
 miss `SLACK_REQUEST_TIMEOUT_MS`, but for a request Slack ultimately accepts
-anyway. A shorter timeout makes that *more* likely, not less, by racing more
+anyway. A shorter timeout makes that _more_ likely, not less, by racing more
 of Slack's genuinely-slow-but-successful responses against the clock. This is
 also why the retry policy has no upper bound on `SLACK_RETRY_ATTEMPTS`'
 practical safety: the abort makes each attempt exclusive of the next, not the
@@ -209,7 +210,7 @@ just not from a timed-out attempt whose connection is still open when the
 retry goes out. `slack-client.service.spec.ts`'s "a timed-out attempt that is
 still in flight when the retry fires" proves the mechanism: an oversized body
 that cannot finish sending before the timeout fires, held at a paused fake
-server, is confirmed to *never* complete after its retry has already
+server, is confirmed to _never_ complete after its retry has already
 succeeded — and confirmed, by deleting the abort, to complete and duplicate
 the request when the mechanism is absent.
 
@@ -236,7 +237,7 @@ payload, and never in a log line. Two defences, in order
    — on `error.original`, and pino's `err` serializer copies an error's own
    properties. `SlackClient` also never passes a raw Slack error to the logger:
    `describeSlackFailure` projects it down to scalars.
-2. **What is left is scrubbed.** The configured token is removed *by value*, and
+2. **What is left is scrubbed.** The configured token is removed _by value_, and
    anything shaped like a Slack credential (`xoxb-`, `xoxp-`, `xapp-`, …) is
    removed too, so a second workspace's token in an error string does not sail
    through.
@@ -258,7 +259,7 @@ who needs to know.
 ## 6. `SLACK_ENABLED` and how dev avoids a real workspace
 
 `SLACK_ENABLED` defaults to **`false`**, and `.env.example` ships it as `false`.
-That single env *value* is what keeps a developer's machine from posting into a
+That single env _value_ is what keeps a developer's machine from posting into a
 real workspace. There is deliberately **no `NODE_ENV` branch and no "don't
 really send" flag** — this project has no test-only branches anywhere
 (`doc/environment.md`, and `doc/decision/0130-*` for this specific decision).
@@ -295,6 +296,7 @@ literal — the time is configuration), built from `SLACK_DAILY_SUMMARY_AT` and
 - **Non-business days are skipped in the body**, not in the cron expression,
   using the same `isBusinessDay` the reservation rules use — a `1-5` cron would
   have covered Saturday and Sunday but not 28 September.
+- Hidden spots are neither counted nor listed.
 - The job is in `SchedulerRegistry`, which is what stops it on SIGTERM:
   `SchedulerOrchestrator.beforeApplicationShutdown` deletes every registered job
   and `deleteCronJob` stops it, so a pending tick cannot hold the process open.

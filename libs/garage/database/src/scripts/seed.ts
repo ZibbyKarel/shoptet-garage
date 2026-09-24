@@ -60,7 +60,7 @@ async function main(): Promise<void> {
     for (const spot of SEED_PARKING_SPOTS) {
       await prisma.parkingSpot.upsert({
         where: { label: spot.label },
-        update: { group: spot.group, active: spot.active },
+        update: { group: spot.group, active: spot.active, hidden: false },
         create: spot,
       });
     }

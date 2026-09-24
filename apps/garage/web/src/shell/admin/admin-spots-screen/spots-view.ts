@@ -60,6 +60,8 @@ const WRITE_ORIGINS: Partial<Record<AdminWrite, readonly FailureHome[]>> = {
   spotRetire: ['delete', 'table'],
   // Only the row's switch: no dialog turns a spot back on.
   spotRevive: ['table'],
+  // Only the row's "Skryté" switch.
+  spotVisibility: ['table'],
 };
 
 /**

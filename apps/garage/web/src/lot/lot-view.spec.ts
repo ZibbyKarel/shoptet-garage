@@ -29,6 +29,7 @@ function spotRow(overrides: Partial<DaySpotOverview> = {}): DaySpotOverview {
       label: 'E2.92',
       group: 'IT',
       active: true,
+      hidden: false,
       createdAt: '2026-08-01T00:00:00.000Z',
       updatedAt: '2026-08-01T00:00:00.000Z',
     },
@@ -256,6 +257,13 @@ describe('toSpotView', () => {
     expect(toSpotView(taken, context({ isAdmin: true, locks: lock(OTHER) })).showAdminMenu).toBe(
       false
     );
+  });
+
+  it('marks a hidden spot for an admin only', () => {
+    const hidden = spotRow({ spot: { ...spotRow().spot, hidden: true } });
+    expect(toSpotView(hidden, context({ isAdmin: true })).hidden).toBe(true);
+    expect(toSpotView(hidden, context({ isAdmin: false })).hidden).toBe(false);
+    expect(toSpotView(spotRow(), context({ isAdmin: true })).hidden).toBe(false);
   });
 
   it('carries the waitlist through in every appearance', () => {

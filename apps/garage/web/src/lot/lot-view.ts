@@ -182,6 +182,12 @@ export interface SpotView {
   /** The `⋯` button: `admin && taken`, exactly as the design has it. */
   readonly showAdminMenu: boolean;
   /**
+   * The spot is hidden and the viewer is an admin — the only viewer who sees
+   * it as such. A normal user shown their own hidden spot sees an ordinary
+   * tile (`doc/decision/0316-*`).
+   */
+  readonly hidden: boolean;
+  /**
    * The holder is a guest an admin booked the bay for. There is no user behind
    * the name, so it is never `isMine` and never carries a per-user car colour.
    */
@@ -334,6 +340,7 @@ export function toSpotView(row: DaySpotOverview, context: LotViewContext): SpotV
     viewerWaitlistEntryId: row.viewerWaitlistEntryId,
     viewerWaitlistPosition: row.viewerWaitlistPosition,
     showAdminMenu: context.isAdmin && isTaken,
+    hidden: context.isAdmin && row.spot.hidden,
     holderIsGuest: holder !== null && holder.kind === 'GUEST',
     infoReason,
     timedBlocks: hasBlocks ? timedBlocks : [],

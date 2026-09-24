@@ -271,6 +271,20 @@ describe('bulk booking against a real PostgreSQL', () => {
       });
     });
 
+    it('never proposes a hidden spot, even when it is the preferred one', async () => {
+      const hidden = await seedSpot(client, { hidden: true });
+      await setPreferredSpot(client, user.id, hidden.id);
+
+      const preview = await harness.bulk.preview(
+        { dates: [PREVIEW_DAYS[0] as DateOnly] },
+        actorFor(user),
+        TODAY
+      );
+
+      expect(preview.days[0]).toMatchObject({ outcome: 'SPOT_ASSIGNED', isPreferredSpot: false });
+      expect(preview.days[0]).not.toMatchObject({ parkingSpotId: hidden.id });
+    });
+
     it('marks a weekend and a holiday unavailable without discarding the rest', async () => {
       const preview = await harness.bulk.preview(
         { dates: [HOLIDAY, WEEKEND, PREVIEW_DAYS[0] as DateOnly] },

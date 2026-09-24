@@ -64,9 +64,16 @@ export function AdminDayScreen({ date, day, onRetry, onOpenLot }: AdminDayScreen
       header: t('dayColumnLabel'),
       sortValue: (row) => row.spot.label,
       cell: (row) => (
-        <Text as="span" weight="bold">
-          {row.spot.label}
-        </Text>
+        <Stack direction="row" align="center" spacing={2}>
+          <Text as="span" weight="bold">
+            {row.spot.label}
+          </Text>
+          {row.spot.hidden ? (
+            <Badge size="sm" tone="neutral">
+              {tLot('hiddenSpot')}
+            </Badge>
+          ) : null}
+        </Stack>
       ),
     },
     {

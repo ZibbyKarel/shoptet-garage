@@ -163,6 +163,21 @@ describe('Slack over a real database', () => {
       );
     });
 
+    it('sends nothing to the channel for a hidden spot', async () => {
+      server.respondWith(() => SLACK_OK);
+      const spot = await seedSpot(client, { labelPrefix: 'SECRET', hidden: true });
+
+      await expect(
+        notifications.notifySpotFreed({
+          parkingSpotId: spot.id,
+          date: FUTURE_BUSINESS_DAY,
+          reservationId: 'r-hidden',
+        })
+      ).resolves.toBe('skipped');
+
+      expect(server.requests).toHaveLength(0);
+    });
+
     it('sends nothing when the spot no longer exists', async () => {
       await expect(
         notifications.notifySpotFreed({
@@ -246,6 +261,7 @@ describe('Slack over a real database', () => {
       const taken = await seedSpot(client, { labelPrefix: 'TAKEN' });
       const blocked = await seedSpot(client, { labelPrefix: 'BLOCKED' });
       const free = await seedSpot(client, { labelPrefix: 'FREE' });
+      const secret = await seedSpot(client, { labelPrefix: 'SECRET', hidden: true });
       const day = '2099-02-02';
       await client.reservation.create({
         data: {
@@ -277,13 +293,16 @@ describe('Slack over a real database', () => {
 
       // Compared against the database rather than a magic number: the suites
       // share one database and seed as they go.
-      const activeSpots = await observer.parkingSpot.count({ where: { active: true } });
+      const activeSpots = await observer.parkingSpot.count({
+        where: { active: true, hidden: false },
+      });
       const text = sentText();
       expect(text).toContain('Parkování — pondělí 2. února 2099');
       expect(text).toContain(`z ${activeSpots}:`);
       expect(text).toContain(free.label);
       expect(text).not.toContain(taken.label);
       expect(text).not.toContain(blocked.label);
+      expect(text).not.toContain(secret.label);
       expect(text).toContain('Ve frontě čeká 1 člověk.');
     });
   });

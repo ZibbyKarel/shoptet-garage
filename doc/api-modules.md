@@ -206,7 +206,7 @@ supposed to answer "what actually changed".
 
 - **Ordering** is `group` then `label`, everywhere, from one constant. The day overview renders a
   grid, and a grid whose cells move between two reads of the same day is unusable.
-- **`spot.list` returns active spots only.** `admin.spot.list` takes `includeInactive` and an
+- **`spot.list` returns active, non-hidden spots only.** `admin.spot.list` takes `includeInactive` and an
   optional `group`.
 - **A duplicate label is left to the unique index**, not pre-checked: a read-then-write would still
   lose a race, and the constraint is what actually decides. `P2002` arrives at the client as

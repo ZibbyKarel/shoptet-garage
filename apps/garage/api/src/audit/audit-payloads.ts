@@ -88,6 +88,7 @@ type SpotUpdatedPayload =
       readonly label: string;
       readonly group: ParkingGroup;
       readonly active: boolean;
+      readonly hidden: boolean;
     }>)
   | { readonly change: 'deactivated'; readonly label: string };
 

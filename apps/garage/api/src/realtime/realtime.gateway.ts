@@ -69,6 +69,7 @@ import {
 } from '@garage/contract/realtime';
 import type { DomainEvent } from '../reservations/reservation-events';
 import { GracefulShutdownService } from '../shutdown/graceful-shutdown.service';
+import { SpotsService } from '../spots/spots.service';
 import { LockService } from './lock.service';
 import { HANDSHAKE_REJECTION_MESSAGE, RealtimeHandshakeAuthenticator } from './realtime-handshake';
 import type { RealtimeServerSocket, RealtimeSocketData } from './realtime-handshake';
@@ -142,6 +143,7 @@ export class RealtimeGateway
     private readonly handshake: RealtimeHandshakeAuthenticator,
     private readonly locks: LockService,
     private readonly shutdown: GracefulShutdownService,
+    private readonly spots: SpotsService,
     @InjectPinoLogger(RealtimeGateway.name) private readonly logger: PinoLogger
   ) {}
 
@@ -303,6 +305,14 @@ export class RealtimeGateway
    * form. A *second tab* of the same user is a different socket and does hear
    * it, which is correct: from that tab's point of view somebody else has the
    * cell.
+   *
+   * A non-admin locking a **hidden** spot is refused the same way an invalid
+   * payload is: dropped, with no acknowledgement and no `cell:locked`
+   * broadcast (`doc/decision/0316-*`). Not `HELD_BY_OTHER` — that would name
+   * an admin holder to a caller who is not supposed to know the spot exists
+   * at all — and there is no `NOT_FOUND` variant in `cellLockAckSchema` to
+   * answer with instead, so silence is the plainest refusal on hand that
+   * names nobody.
    */
   @SubscribeMessage('cell:lock')
   cellLock(
@@ -311,6 +321,9 @@ export class RealtimeGateway
   ): CellLockAck | undefined {
     const cell = this.accept('cell:lock', raw);
     if (cell === null) {
+      return undefined;
+    }
+    if (client.data.role !== 'ADMIN' && this.spots.isHidden(cell.parkingSpotId)) {
       return undefined;
     }
 
@@ -407,7 +420,7 @@ export class RealtimeGateway
    */
   private emitToDay(
     event: ServerToClientEventName,
-    payload: { readonly date: string },
+    payload: { readonly date: string; readonly parkingSpotId: string },
     except?: RealtimeServerSocket
   ): void {
     const schema: z.ZodType = SERVER_TO_CLIENT_EVENT_SCHEMAS[event];
@@ -427,13 +440,42 @@ export class RealtimeGateway
     }
 
     const room = roomForDate(payload.date);
-    const target = except === undefined ? this.server.to(room) : except.to(room);
+    if (this.spots.isHidden(payload.parkingSpotId)) {
+      this.emitToAdminsIn(room, event, parsed.data, except);
+      return;
+    }
     // `emit` is typed per event name by `ServerToClientEvents`; this function is
     // deliberately the one place that is not, because it is the *shared*
     // machinery — validation, room derivation, the never-throw guarantee —
     // behind the typed wrappers below. Those wrappers are what callers use, and
     // they pin the payload to the contract's own inferred type.
+    const target = except === undefined ? this.server.to(room) : except.to(room);
     (target.emit as (name: string, data: unknown) => void)(event, parsed.data);
+  }
+
+  /**
+   * A hidden spot's traffic, to the admins in the room only
+   * (`doc/decision/0316-hidden-spots-are-seen-and-booked-by-admins-only`) —
+   * a normal user must not learn from a broadcast who holds, queues for or is
+   * editing a spot the lot does not show them.
+   *
+   * ponytail: walks this process's own sockets in the room, which is every
+   * socket on the single instance this app targets. Behind a multi-node
+   * adapter this becomes a role room joined at connection plus
+   * `server.to(room).except(nonAdminRoom)`.
+   */
+  private emitToAdminsIn(
+    room: string,
+    event: ServerToClientEventName,
+    data: unknown,
+    except?: RealtimeServerSocket
+  ): void {
+    for (const socketId of this.server.sockets.adapter.rooms.get(room) ?? []) {
+      const socket = this.server.sockets.sockets.get(socketId);
+      if (socket !== undefined && socketId !== except?.id && socket.data.role === 'ADMIN') {
+        (socket.emit as (name: string, data: unknown) => void)(event, data);
+      }
+    }
   }
 
   /**

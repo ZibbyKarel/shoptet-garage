@@ -18,6 +18,13 @@ describe('spotListOutputSchema', () => {
       spotListOutputSchema.safeParse({ spots: [{ ...parkingSpotFixture, group: 'VIP' }] }).success
     ).toBe(false);
   });
+
+  it('requires the hidden flag on every spot', () => {
+    expect(
+      spotListOutputSchema.safeParse({ spots: [{ ...parkingSpotFixture, hidden: undefined }] })
+        .success
+    ).toBe(false);
+  });
 });
 
 describe('adminListSpotsInputSchema', () => {
@@ -45,8 +52,10 @@ describe('createSpotInputSchema', () => {
     expect(createSpotInputSchema.parse(valid)).toEqual(valid);
   });
 
-  it('does not let the client set id or active', () => {
-    expect(createSpotInputSchema.parse({ ...valid, id: UUID_B, active: false })).toEqual(valid);
+  it('does not let the client set id, active or hidden', () => {
+    expect(
+      createSpotInputSchema.parse({ ...valid, id: UUID_B, active: false, hidden: true })
+    ).toEqual(valid);
   });
 
   it('rejects an empty label and a missing group', () => {
@@ -74,6 +83,14 @@ describe('updateSpotInputSchema', () => {
 
   it('rejects null for a field that has no "clear" meaning', () => {
     expect(updateSpotInputSchema.safeParse({ id: UUID_B, label: null }).success).toBe(false);
+  });
+
+  it('accepts hiding and unhiding a spot', () => {
+    expect(updateSpotInputSchema.parse({ id: UUID_B, hidden: true })).toEqual({
+      id: UUID_B,
+      hidden: true,
+    });
+    expect(updateSpotInputSchema.safeParse({ id: UUID_B, hidden: 'yes' }).success).toBe(false);
   });
 });
 

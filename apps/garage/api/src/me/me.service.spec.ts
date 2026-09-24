@@ -68,6 +68,15 @@ describe('MeService', () => {
       ).rejects.toMatchObject({ code: 'NOT_FOUND' });
     });
 
+    it('rejects a hidden spot as the preferred spot with NOT_FOUND — bulk would never assign it', async () => {
+      const spot = double.seedSpot({ label: 'A1', hidden: true });
+      const user = double.seedUser();
+
+      await expect(
+        me.updateSettings({ preferredParkingSpotId: spot.id }, user.id)
+      ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    });
+
     it('rejects a retired spot with VALIDATION_FAILED — a different situation for the user', async () => {
       const spot = double.seedSpot({ label: 'A1', active: false });
       const user = double.seedUser();

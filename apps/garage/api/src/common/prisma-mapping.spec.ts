@@ -86,6 +86,7 @@ describe('entity mapping', () => {
         label: 'E2.92',
         group: 'IT',
         active: true,
+        hidden: true,
         createdAt: EPOCH,
         updatedAt: EPOCH,
       })
@@ -94,6 +95,7 @@ describe('entity mapping', () => {
       label: 'E2.92',
       group: 'IT',
       active: true,
+      hidden: true,
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-01T00:00:00.000Z',
     });

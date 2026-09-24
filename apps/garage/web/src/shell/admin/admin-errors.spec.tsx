@@ -155,6 +155,7 @@ describe('useAdminWriteError', () => {
         ['spotRename', declaredOn(contract.admin.spot.update)],
         ['spotRetire', declaredOn(contract.admin.spot.deactivate)],
         ['spotRevive', declaredOn(contract.admin.spot.update)],
+        ['spotVisibility', declaredOn(contract.admin.spot.update)],
         ['windowUpdate', declaredOn(contract.admin.window.update)],
       ];
 
@@ -168,6 +169,9 @@ describe('useAdminWriteError', () => {
         // only checks reservations on the way off) and sends neither a label
         // nor a group, so neither code has a cause to name.
         spotRevive: ['CONFLICT', 'VALIDATION_FAILED'],
+        // Hiding or unhiding sends neither a label nor a group and runs no
+        // commitment check (`SpotsService.update`), so neither code has a cause.
+        spotVisibility: ['CONFLICT', 'VALIDATION_FAILED'],
       };
 
       for (const [write, codes] of expectations) {

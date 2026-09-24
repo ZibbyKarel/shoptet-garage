@@ -264,6 +264,14 @@ export function SpotTile({ spot, onOpen, onAdminOpen }: SpotTileProps) {
         ) : null}
       </button>
 
+      {spot.hidden ? (
+        <Box placement="top-left" interactive="none">
+          <Badge size="sm" tone="neutral">
+            {t('hiddenSpot')}
+          </Badge>
+        </Box>
+      ) : null}
+
       {spot.waitlistCount > 0 ? (
         <Box placement="bottom-center" interactive="none">
           <Badge tone="warning">{t('waiting', { count: spot.waitlistCount })}</Badge>

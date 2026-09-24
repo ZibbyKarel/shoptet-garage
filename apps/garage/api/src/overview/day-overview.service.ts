@@ -87,7 +87,20 @@ export class DayOverviewService {
       timedReservationsBySpot.set(row.parkingSpotId, blocks);
     }
 
-    const spotOverviews: DaySpotOverview[] = spots.map((spot) => {
+    // Hidden spots are the admins' (`doc/decision/0316-hidden-spots-are-seen-and-booked-by-admins-only`).
+    // A normal user still gets one they hold or are queued for that day — it
+    // is their booking, and the tile is where they cancel or leave it.
+    const visibleSpots =
+      viewer.role === 'ADMIN'
+        ? spots
+        : spots.filter(
+            (spot) =>
+              !spot.hidden ||
+              reservationBySpot.get(spot.id)?.userId === viewer.id ||
+              (queueBySpot.get(spot.id) ?? []).some((entry) => entry.userId === viewer.id)
+          );
+
+    const spotOverviews: DaySpotOverview[] = visibleSpots.map((spot) => {
       const reservation = reservationBySpot.get(spot.id);
       const queue = queueBySpot.get(spot.id) ?? [];
       // `findIndex` on an already-ordered array: the position *is* the order.
@@ -96,8 +109,8 @@ export class DayOverviewService {
 
       return {
         // Already in contract shape: `SpotsService.listActive` is the single
-        // definition of "which spots exist and in what order", and re-mapping it
-        // here would be a second one.
+        // definition of "which spots exist and in what order"; `visibleSpots`
+        // above only narrows it per viewer.
         spot,
         reservation:
           reservation === undefined ? null : toPublicReservation(reservation, reservation.user),

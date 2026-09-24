@@ -17,6 +17,7 @@ function aSpot(overrides: Partial<ParkingSpot> & { id: string; label: string }):
   return {
     group: 'IT',
     active: true,
+    hidden: false,
     createdAt: TIMESTAMP,
     updatedAt: TIMESTAMP,
     ...overrides,
@@ -27,6 +28,7 @@ const TAKEN = aSpot({ id: 's1', label: 'E2.92' });
 const FREE = aSpot({ id: 's2', label: 'E2.93' });
 const SHARED = aSpot({ id: 's3', label: 'E2.96', group: 'SHARED' });
 const RETIRED = aSpot({ id: 's4', label: 'E2.99', active: false });
+const HIDDEN = aSpot({ id: 's5', label: 'E2.98', hidden: true });
 
 const TODAY: ReadonlyMap<string, SpotToday> = new Map([
   [TAKEN.id, { holderName: 'Karel Zíbar', holderIsGuest: false }],
@@ -53,6 +55,7 @@ function makeProps({ spots, spotsState, ...overrides }: Overrides = {}) {
     onCreate: jest.fn<Promise<void>, [unknown]>().mockResolvedValue(undefined),
     onSave: jest.fn<Promise<void>, [unknown]>().mockResolvedValue(undefined),
     onActiveChange: jest.fn(),
+    onHiddenChange: jest.fn(),
     onDeactivate: jest.fn<Promise<void>, [string]>().mockResolvedValue(undefined),
     onDiscardFailure: jest.fn(),
   };
@@ -60,7 +63,7 @@ function makeProps({ spots, spotsState, ...overrides }: Overrides = {}) {
   const props: AdminSpotsScreenProps = {
     spots: spotsState ?? {
       kind: 'ready',
-      data: { spots: [...(spots ?? [TAKEN, FREE, SHARED, RETIRED])] },
+      data: { spots: [...(spots ?? [TAKEN, FREE, SHARED, RETIRED, HIDDEN])] },
     },
     todayBySpotId: TODAY,
     pendingSpotId: null,
@@ -201,12 +204,12 @@ describe('AdminSpotsScreen', () => {
 
   describe('the category band', () => {
     it('counts every listed spot per category, retired ones included', () => {
-      // Three IT (E2.92, E2.93, E2.99) and one SHARED. A count that hid the
-      // retired spot would disagree with the rows underneath it.
+      // Four IT (E2.92, E2.93, E2.99, E2.98) and one SHARED. A count that hid
+      // the retired or hidden spot would disagree with the rows underneath it.
       renderScreen();
 
       const band = screen.getByRole('group', { name: 'spotsCategories' });
-      expect(within(band).getByText('3')).toBeInTheDocument();
+      expect(within(band).getByText('4')).toBeInTheDocument();
       expect(within(band).getByText('1')).toBeInTheDocument();
     });
 
@@ -285,6 +288,39 @@ describe('AdminSpotsScreen', () => {
       ).toBeDisabled();
       expect(
         within(rowOf(FREE)).getByRole('switch', { name: 'spotsActiveToggleLabel: label=E2.93' })
+      ).toBeEnabled();
+    });
+  });
+
+  describe('the hidden switch', () => {
+    it('marks and reflects a hidden spot, and reports the state it moved to', async () => {
+      const { onHiddenChange, user } = renderScreen();
+
+      expect(within(rowOf(HIDDEN)).getByText('spotsHidden')).toBeInTheDocument();
+      expect(within(rowOf(TAKEN)).queryByText('spotsHidden')).not.toBeInTheDocument();
+      expect(
+        within(rowOf(HIDDEN)).getByRole('switch', { name: 'spotsHiddenToggleLabel: label=E2.98' })
+      ).toBeChecked();
+
+      await user.click(
+        within(rowOf(TAKEN)).getByRole('switch', { name: 'spotsHiddenToggleLabel: label=E2.92' })
+      );
+      expect(onHiddenChange).toHaveBeenLastCalledWith(TAKEN.id, true);
+
+      await user.click(
+        within(rowOf(HIDDEN)).getByRole('switch', { name: 'spotsHiddenToggleLabel: label=E2.98' })
+      );
+      expect(onHiddenChange).toHaveBeenLastCalledWith(HIDDEN.id, false);
+    });
+
+    it('freezes only the row being written', () => {
+      renderScreen({ pendingSpotId: TAKEN.id });
+
+      expect(
+        within(rowOf(TAKEN)).getByRole('switch', { name: 'spotsHiddenToggleLabel: label=E2.92' })
+      ).toBeDisabled();
+      expect(
+        within(rowOf(FREE)).getByRole('switch', { name: 'spotsHiddenToggleLabel: label=E2.93' })
       ).toBeEnabled();
     });
   });

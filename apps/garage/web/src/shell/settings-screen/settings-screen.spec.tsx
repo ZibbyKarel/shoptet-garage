@@ -68,6 +68,7 @@ const SPOT_A: ParkingSpot = {
   label: 'E2.92',
   group: 'IT',
   active: true,
+  hidden: false,
   createdAt: '2026-08-28T09:15:00.000Z',
   updatedAt: '2026-08-28T09:15:00.000Z',
 };

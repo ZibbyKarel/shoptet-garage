@@ -59,6 +59,15 @@ describe('SpotsService', () => {
 
       expect(result.map((spot) => spot.label)).toEqual(['IT1']);
     });
+
+    it('leaves hidden spots out of the plain listing, and keeps them in the other two', async () => {
+      double.seedSpot({ label: 'SEEN' });
+      double.seedSpot({ label: 'SECRET', hidden: true });
+
+      await expect(spots.listVisible()).resolves.toMatchObject([{ label: 'SEEN' }]);
+      await expect(spots.listActive()).resolves.toHaveLength(2);
+      await expect(spots.adminList({ includeInactive: false })).resolves.toHaveLength(2);
+    });
   });
 
   describe('create', () => {
@@ -109,8 +118,8 @@ describe('SpotsService', () => {
 
       expect(double.auditLogs[0]?.payload).toEqual({
         change: 'updated',
-        before: { label: 'A1', group: 'SHARED', active: true },
-        after: { label: 'A1', group: 'IT', active: true },
+        before: { label: 'A1', group: 'SHARED', active: true, hidden: false },
+        after: { label: 'A1', group: 'IT', active: true, hidden: false },
       });
     });
 
@@ -131,6 +140,47 @@ describe('SpotsService', () => {
         code: 'CONFLICT',
       });
       expect(double.spots[0]?.active).toBe(true);
+    });
+  });
+
+  describe('hiding', () => {
+    it('hides and unhides a spot, audits it, and keeps isHidden in step', async () => {
+      const spot = double.seedSpot({ label: 'A1' });
+
+      await expect(spots.update({ id: spot.id, hidden: true }, 'admin-1')).resolves.toMatchObject({
+        hidden: true,
+        active: true,
+      });
+      expect(spots.isHidden(spot.id)).toBe(true);
+
+      await spots.update({ id: spot.id, hidden: false }, 'admin-1');
+      expect(spots.isHidden(spot.id)).toBe(false);
+      expect(double.auditLogs.at(-1)?.payload).toMatchObject({
+        change: 'updated',
+        before: { hidden: true },
+        after: { hidden: false },
+      });
+    });
+
+    it('is not a retirement: it succeeds while somebody holds the spot from today on', async () => {
+      const spot = double.seedSpot({ label: 'A1' });
+      const user = double.seedUser();
+      double.seedReservation({ parkingSpotId: spot.id, userId: user.id, date: TODAY });
+      double.seedWaitlistEntry({ parkingSpotId: spot.id, userId: user.id, date: '2026-09-10' });
+
+      await expect(spots.update({ id: spot.id, hidden: true }, 'admin-1')).resolves.toMatchObject({
+        hidden: true,
+      });
+    });
+
+    it('loads the hidden ids at boot', async () => {
+      const hidden = double.seedSpot({ label: 'SECRET', hidden: true });
+      const seen = double.seedSpot({ label: 'SEEN' });
+
+      await spots.onModuleInit();
+
+      expect(spots.isHidden(hidden.id)).toBe(true);
+      expect(spots.isHidden(seen.id)).toBe(false);
     });
   });
 

@@ -67,6 +67,14 @@ export const parkingSpotSchema = z.object({
   label: z.string().min(1),
   group: parkingGroupSchema,
   active: z.boolean(),
+  /**
+   * Seen by admins only. Every read path a normal user reaches leaves it out —
+   * the lot, the preferred-spot picker, bulk booking, the Slack digest, the
+   * realtime broadcasts — except the viewer's own reservation or queue entry on
+   * it. An admin can still book it for anybody. Not a retirement: `active` is
+   * independent. `doc/decision/0316-hidden-spots-are-seen-and-booked-by-admins-only`.
+   */
+  hidden: z.boolean(),
   createdAt: timestampSchema,
   updatedAt: timestampSchema,
 });

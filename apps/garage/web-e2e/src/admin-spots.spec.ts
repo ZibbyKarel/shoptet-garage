@@ -186,12 +186,17 @@ test('deleting a spot with a reservation is refused, and succeeds once it is can
   await confirmDialog.getByRole('button', { name: 'Smazat', exact: true }).click();
 
   // Refused: `SpotsService`'s `requireNoFutureCommitments` sees the user's
-  // reservation and the dialog stays open with its own sentence, per
-  // `admin-spots-screen.tsx`'s `onConfirm` (left open so the retry affordance
-  // is visible).
-  await expect(confirmDialog).toContainText(
-    'Na tomto místě jsou rezervace ode dneška dál. Nejdřív je zrušte.'
-  );
+  // reservation. Since 0fc3af5 the sentence renders through the global
+  // `useNotify`/toast region, not as the `ConfirmDialog`'s own children, so
+  // it is asserted at page level rather than scoped to the dialog — scoped
+  // to the toast region by its `'Oznámení'` accessible name, because
+  // Next.js's own route announcer also carries a bare `role="alert"` and
+  // `getByRole('alert')` alone matches both. The dialog itself stays open
+  // regardless, per `admin-spots-screen.tsx`'s `onConfirm` (left open so the
+  // retry affordance is visible).
+  await expect(
+    adminPage.getByRole('region', { name: 'Oznámení' }).getByRole('alert')
+  ).toContainText('Na tomto místě jsou rezervace ode dneška dál. Nejdřív je zrušte.');
   await expect(confirmDialog).toBeVisible();
   await confirmDialog.getByRole('button', { name: 'Zrušit', exact: true }).click();
   await expect(confirmDialog).toBeHidden();

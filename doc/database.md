@@ -63,6 +63,7 @@ erDiagram
         text label UK "E2.92 …"
         ParkingGroup group "IT | SHARED"
         boolean active
+        boolean hidden "admins only"
         timestamptz createdAt
         timestamptz updatedAt
     }
