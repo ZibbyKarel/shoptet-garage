@@ -41,7 +41,7 @@ const YESTERDAY = '2026-09-01' as DateOnly;
 const SATURDAY = '2026-10-03' as DateOnly;
 /** Far enough out that `AUTO` has not opened its month yet. */
 const DISTANT_DAY = '2027-05-03' as DateOnly;
-/** In the current month, which `AUTO` always reports as `LOCKED`. */
+/** In the current month, which `AUTO` keeps open once it has begun. */
 const THIS_MONTH_DAY = '2026-09-30' as DateOnly;
 
 /** The code of the `DomainError` `work` throws, or a failure if it throws nothing. */
@@ -120,9 +120,13 @@ describe('ReservationPolicy', () => {
     });
 
     it('maps LOCKED to RESERVATIONS_LOCKED', () => {
-      expect(codeOf(() => policy.assertMayTakeDay(THIS_MONTH_DAY, USER, AUTO, TODAY))).toBe(
+      expect(codeOf(() => policy.assertMayTakeDay(THIS_MONTH_DAY, USER, FORCE_LOCKED, TODAY))).toBe(
         'RESERVATIONS_LOCKED'
       );
+    });
+
+    it('lets a normal user book the running month under AUTO — leftovers are free for all', () => {
+      expect(() => policy.assertMayTakeDay(THIS_MONTH_DAY, USER, AUTO, TODAY)).not.toThrow();
     });
 
     it('lets a normal user through an open month', () => {

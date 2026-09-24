@@ -262,6 +262,14 @@ describe('DayOverviewService', () => {
       expect(result.canReserve).toBe(true);
     });
 
+    it('is true for an ordinary user in the running month under AUTO — the window only opens', async () => {
+      // 2026-09-15 is a Tuesday in the month `TODAY` (2026-09-02) is in.
+      const result = await overview.getDay({ date: '2026-09-15' }, authenticated('u'), TODAY);
+
+      expect(result.window.state).toBe('OPEN');
+      expect(result.canReserve).toBe(true);
+    });
+
     it('is exactly canReserveMonth and the day’s own reservability, never one of them alone', async () => {
       // The composition, asserted where it can actually be seen: an open month
       // with a weekend inside it is the case that separates the two fields.

@@ -502,26 +502,25 @@ describe('the waitlist against a real PostgreSQL', () => {
       expect(await client.waitlistEntry.findUnique({ where: { id: entry.entry.id } })).toBeNull();
     });
 
-    it('is allowed in a month AUTO has locked — the only timeline a live queue is ever in', async () => {
-      // The window rule this replaces made leaving impossible for the whole
-      // live life of every queue. `monthLockState` returns `LOCKED` from the 1st
-      // of the target month onwards (`reservation-window.ts:100-102`), and the
-      // target month is the only period a queue for it can be promoted in — so
-      // under the shipped `AUTO` defaults a normal user could never get out.
+    it('is allowed in the running month under AUTO — the timeline a live queue is promoted in', async () => {
+      // The window rule this replaced made leaving impossible for the whole
+      // live life of every queue: `monthLockState` used to return `LOCKED`
+      // from the 1st of the target month onwards. Since
+      // `doc/decision/0315-the-monthly-cap-applies-only-inside-the-auto-window`
+      // the running month is `OPEN`, and leaving must work there regardless.
       //
-      // Deliberately built from the **real** `todayInPrague()` and `AUTO`, not
-      // from `FORCE_LOCKED`: the previous test reached `LOCKED` through the
-      // admin override, and every fixture in this file uses a `TODAY` in the
-      // month *before* its target day, so this timeline was exercised nowhere.
+      // Deliberately built from the **real** `todayInPrague()` and `AUTO`:
+      // every other fixture in this file uses a `TODAY` in the month *before*
+      // its target day, so this timeline would be exercised nowhere else.
       // See `doc/decision/0233-*`.
       const today = todayInPrague();
       const target = firstBusinessDayOfMonthContaining(today);
-      // The last day the window was open under `AUTO`: they joined then.
+      // The last day of the window under `AUTO`: they joined then.
       const whileOpen = addDays(startOfMonth(today), -1);
 
       const settings = await harness.window.getSettings();
       expect(monthLockState(target, settings.openDaysBefore, settings.lockMode, today)).toBe(
-        'LOCKED'
+        'OPEN'
       );
       expect(monthLockState(target, settings.openDaysBefore, settings.lockMode, whileOpen)).toBe(
         'OPEN'
@@ -545,7 +544,7 @@ describe('the waitlist against a real PostgreSQL', () => {
       harness.publisher.reset();
 
       // No `today` argument: `leave` does not take one any more, so this runs
-      // against the locked month the real clock is in.
+      // against the running month the real clock is in.
       const result = await harness.waitlist.leave(
         { waitlistEntryId: entry.entry.id },
         actorFor(user)
