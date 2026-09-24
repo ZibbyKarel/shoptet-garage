@@ -16,19 +16,37 @@
 
 import { Box, Input, Select, Stack } from '@garage/design-system/primitives';
 import { FormField } from '@garage/form';
-import { useTranslations } from '@garage/i18n';
+import { HALF_HOUR_END_TIMES, HALF_HOUR_START_TIMES, useTranslations } from '@garage/i18n';
 import { GUEST_HOLDER_VALUE, plateHintFor } from './holder-input';
-import type { HolderFormValues, HolderOption } from './holder-input';
+import type { HolderDuration, HolderFormValues, HolderOption } from './holder-input';
 
 export interface HolderFieldsProps {
   readonly options: readonly HolderOption[];
   /** The `holderId` currently selected — the guest field is only shown for a guest. */
   readonly holderId: string;
+  /** The `duration` currently selected — the time selects only show for `'TIMED'`. */
+  readonly duration: HolderDuration;
+  /**
+   * A `'timed'` spot's dialog: the holder is a fixed guest and the duration
+   * is a fixed block, so neither the holder select nor the duration select
+   * is rendered — only the time-range selects, always.
+   */
+  readonly timedOnly: boolean;
 }
 
-export function HolderFields({ options, holderId }: HolderFieldsProps) {
+/**
+ * `'9'`, `'9:30'` — the same leading-zero stripping `formatTimeRange` does,
+ * for one side of a range rather than both.
+ */
+function formatTimeOfDay(time: string): string {
+  return time.replace(/^0/, '');
+}
+
+export function HolderFields({ options, holderId, duration, timedOnly }: HolderFieldsProps) {
   const t = useTranslations('lot');
   const hint = plateHintFor(options, holderId);
+  const isGuest = timedOnly || holderId === GUEST_HOLDER_VALUE;
+  const showTimeFields = timedOnly || duration === 'TIMED';
 
   // `mb-5` was baked into the field stack's own className; it is this
   // component's placement in `SpotDialog`, not part of `Stack`'s own chrome,
@@ -36,22 +54,24 @@ export function HolderFields({ options, holderId }: HolderFieldsProps) {
   return (
     <Box margin={[0, 0, 5, 0]}>
       <Stack spacing={4}>
-        <FormField<HolderFormValues, 'holderId'>
-          name="holderId"
-          render={({ field, error: fieldError }) => (
-            <Select label={t('holderField')} error={fieldError} {...field}>
-              {options.map((option) => (
-                <option key={option.userId} value={option.userId}>
-                  {option.name}
-                  {option.licensePlate === null ? '' : ` — ${option.licensePlate}`}
-                </option>
-              ))}
-              <option value={GUEST_HOLDER_VALUE}>{t('holderGuestOption')}</option>
-            </Select>
-          )}
-        />
+        {timedOnly ? null : (
+          <FormField<HolderFormValues, 'holderId'>
+            name="holderId"
+            render={({ field, error: fieldError }) => (
+              <Select label={t('holderField')} error={fieldError} {...field}>
+                {options.map((option) => (
+                  <option key={option.userId} value={option.userId}>
+                    {option.name}
+                    {option.licensePlate === null ? '' : ` — ${option.licensePlate}`}
+                  </option>
+                ))}
+                <option value={GUEST_HOLDER_VALUE}>{t('holderGuestOption')}</option>
+              </Select>
+            )}
+          />
+        )}
 
-        {holderId === GUEST_HOLDER_VALUE ? (
+        {isGuest ? (
           <FormField<HolderFormValues, 'guestName'>
             name="guestName"
             render={({ field, error: fieldError }) => (
@@ -64,6 +84,51 @@ export function HolderFields({ options, holderId }: HolderFieldsProps) {
               />
             )}
           />
+        ) : null}
+
+        {isGuest && !timedOnly ? (
+          <FormField<HolderFormValues, 'duration'>
+            name="duration"
+            render={({ field }) => (
+              <Select label={t('durationField')} {...field}>
+                <option value="FULL_DAY">{t('durationFullDay')}</option>
+                <option value="TIMED">{t('durationTimed')}</option>
+              </Select>
+            )}
+          />
+        ) : null}
+
+        {showTimeFields ? (
+          <>
+            <FormField<HolderFormValues, 'startTime'>
+              name="startTime"
+              render={({ field }) => (
+                <Select label={t('startTimeField')} {...field}>
+                  {HALF_HOUR_START_TIMES.map((time) => (
+                    <option key={time} value={time}>
+                      {formatTimeOfDay(time)}
+                    </option>
+                  ))}
+                </Select>
+              )}
+            />
+            <FormField<HolderFormValues, 'endTime'>
+              name="endTime"
+              render={({ field, error: fieldError }) => (
+                <Select
+                  label={t('endTimeField')}
+                  error={fieldError === undefined ? undefined : t('timeRangeInvalid')}
+                  {...field}
+                >
+                  {HALF_HOUR_END_TIMES.map((time) => (
+                    <option key={time} value={time}>
+                      {formatTimeOfDay(time)}
+                    </option>
+                  ))}
+                </Select>
+              )}
+            />
+          </>
         ) : null}
 
         <FormField<HolderFormValues, 'licensePlate'>

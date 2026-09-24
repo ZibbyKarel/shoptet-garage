@@ -1,5 +1,6 @@
 import { screen } from '@testing-library/react';
 import { mine, renderDialog, spot, takenByOther } from './spot-dialog.test-helpers';
+import { GUEST_HOLDER_VALUE } from './holder-input';
 
 /**
  * Which actions the dialog offers, in which state.
@@ -324,6 +325,125 @@ describe('SpotDialog — an admin reserving a free bay', () => {
     renderAdmin({ holderOptions: [], holderPending: true });
 
     expect(screen.getByRole('button', { name: 'ctaReserve' })).toBeDisabled();
+  });
+
+  it('offers a guest half-hour block, and submits it through onReserveTimed rather than onReserve', async () => {
+    const { onReserve, onReserveTimed, user } = renderAdmin();
+
+    await user.selectOptions(screen.getByLabelText('holderField'), GUEST_HOLDER_VALUE);
+    await user.type(screen.getByLabelText('guestNameField'), 'Jan Host');
+    // No duration select yet — the whole-day / block choice.
+    expect(screen.queryByLabelText('startTimeField')).not.toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText('durationField'), 'TIMED');
+    expect(screen.getByLabelText('startTimeField')).toBeInTheDocument();
+    expect(screen.getByLabelText('endTimeField')).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText('startTimeField'), '09:00');
+    await user.selectOptions(screen.getByLabelText('endTimeField'), '10:30');
+    await user.click(screen.getByRole('button', { name: 'ctaReserve' }));
+
+    expect(onReserveTimed).toHaveBeenCalledWith({
+      guestName: 'Jan Host',
+      licensePlate: null,
+      startTime: '09:00',
+      endTime: '10:30',
+    });
+    expect(onReserve).not.toHaveBeenCalled();
+  });
+
+  it('refuses to submit a guest block whose end is not later than its start', async () => {
+    const { onReserveTimed, user } = renderAdmin();
+
+    await user.selectOptions(screen.getByLabelText('holderField'), GUEST_HOLDER_VALUE);
+    await user.type(screen.getByLabelText('guestNameField'), 'Jan Host');
+    await user.selectOptions(screen.getByLabelText('durationField'), 'TIMED');
+    await user.selectOptions(screen.getByLabelText('startTimeField'), '10:00');
+    await user.selectOptions(screen.getByLabelText('endTimeField'), '09:30');
+    await user.click(screen.getByRole('button', { name: 'ctaReserve' }));
+
+    expect(onReserveTimed).not.toHaveBeenCalled();
+    expect(await screen.findByText('timeRangeInvalid')).toBeInTheDocument();
+  });
+});
+
+describe('SpotDialog — a timed spot’s guest blocks', () => {
+  const BLOCKS = [
+    {
+      id: 'block-1',
+      startTime: '09:00',
+      endTime: '10:30',
+      guestName: 'Jan Host',
+      licensePlate: null,
+      createdAt: '2026-09-01T00:00:00.000Z',
+    },
+    {
+      id: 'block-2',
+      startTime: '13:00',
+      endTime: '14:00',
+      guestName: 'Eva Malá',
+      licensePlate: '5CD 4321',
+      createdAt: '2026-09-01T00:00:00.000Z',
+    },
+  ];
+
+  it('lets an admin book another block and cancel an existing one', async () => {
+    const { onCancelTimedReservation, onReserveTimed, user } = renderDialog({
+      spot: spot({
+        appearance: 'timed',
+        action: 'reserve',
+        timedBlocks: BLOCKS,
+      }),
+      isAdmin: true,
+      viewerUserId: 'admin-1',
+      holderOptions: [{ userId: 'admin-1', name: 'Dev Admin', licensePlate: '1AA 1111' }],
+    });
+
+    // The holder is a fixed guest — no selector, no duration choice.
+    expect(screen.queryByLabelText('holderField')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('durationField')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('guestNameField')).toBeInTheDocument();
+    expect(screen.getByLabelText('startTimeField')).toBeInTheDocument();
+
+    expect(screen.getByText('timedBlocksHeading')).toBeInTheDocument();
+    expect(screen.getByText('9:00–10:30')).toBeInTheDocument();
+    expect(screen.getByText('Jan Host')).toBeInTheDocument();
+    expect(screen.getByText('13:00–14:00')).toBeInTheDocument();
+    expect(screen.getByText('Eva Malá')).toBeInTheDocument();
+
+    const cancelButtons = screen.getAllByRole('button', { name: 'timedBlockCancel' });
+    expect(cancelButtons).toHaveLength(2);
+    await user.click(cancelButtons[0] as HTMLElement);
+    expect(onCancelTimedReservation).toHaveBeenCalledWith('block-1');
+
+    await user.type(screen.getByLabelText('guestNameField'), 'Petr Nový');
+    await user.selectOptions(screen.getByLabelText('startTimeField'), '11:00');
+    await user.selectOptions(screen.getByLabelText('endTimeField'), '11:30');
+    await user.click(screen.getByRole('button', { name: 'ctaReserve' }));
+
+    expect(onReserveTimed).toHaveBeenCalledWith({
+      guestName: 'Petr Nový',
+      licensePlate: null,
+      startTime: '11:00',
+      endTime: '11:30',
+    });
+  });
+
+  it('shows the list to a non-admin, with no cancel button', () => {
+    renderDialog({
+      spot: spot({
+        appearance: 'timed',
+        action: 'info',
+        infoReason: 'timed',
+        timedBlocks: BLOCKS,
+      }),
+    });
+
+    expect(screen.getByText('infoTimedBlocks')).toBeInTheDocument();
+    expect(screen.getByText('timedBlocksHeading')).toBeInTheDocument();
+    expect(screen.getByText('9:00–10:30')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'timedBlockCancel' })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('guestNameField')).not.toBeInTheDocument();
   });
 });
 

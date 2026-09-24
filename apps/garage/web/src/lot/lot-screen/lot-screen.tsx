@@ -334,6 +334,22 @@ export function LotScreen() {
     onError: onWriteError,
   });
 
+  const createTimedReservation = useMutation({
+    ...api.admin.timedReservation.create.mutationOptions(),
+    onSuccess: onMutationSuccess,
+    onError: onWriteError,
+  });
+  /**
+   * Unlike every other write here, success does **not** close the dialog: a
+   * `'timed'` spot can carry several guest blocks, and cancelling one should
+   * leave the admin looking at the rest, not bounced back to the grid.
+   */
+  const cancelTimedReservation = useMutation({
+    ...api.admin.timedReservation.cancel.mutationOptions(),
+    onSuccess: invalidateDay,
+    onError: onWriteError,
+  });
+
   const counts = useMemo(() => toLotCounts(day?.spots ?? []), [day?.spots]);
 
   const parts = parseDateOnly(date);
@@ -373,7 +389,9 @@ export function LotScreen() {
     createReservation.isPending ||
     cancelReservation.isPending ||
     joinWaitlist.isPending ||
-    leaveWaitlist.isPending;
+    leaveWaitlist.isPending ||
+    createTimedReservation.isPending ||
+    cancelTimedReservation.isPending;
 
   return (
     <>
@@ -501,6 +519,13 @@ export function LotScreen() {
             ?.id;
           if (reservationId === undefined) return;
           cancelReservation.mutate({ reservationId });
+        }}
+        onReserveTimed={(block) => {
+          if (openSpot === null) return;
+          createTimedReservation.mutate({ parkingSpotId: openSpot.spotId, date, ...block });
+        }}
+        onCancelTimedReservation={(timedReservationId) => {
+          cancelTimedReservation.mutate({ timedReservationId });
         }}
       />
     </>

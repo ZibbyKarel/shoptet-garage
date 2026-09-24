@@ -119,6 +119,8 @@ const apiMocks = {
   myMonth: jest.fn(),
   adminUserList: jest.fn(),
   adminReservationMonth: jest.fn(),
+  timedReservationCreate: jest.fn(),
+  timedReservationCancel: jest.fn(),
 };
 
 function buildClient() {
@@ -137,6 +139,10 @@ function buildClient() {
     admin: {
       user: { list: apiMocks.adminUserList },
       reservation: { month: apiMocks.adminReservationMonth },
+      timedReservation: {
+        create: apiMocks.timedReservationCreate,
+        cancel: apiMocks.timedReservationCancel,
+      },
     },
   };
 }
@@ -208,6 +214,35 @@ function takenSpot(overrides: Partial<DaySpotOverview> = {}): DaySpotOverview {
     viewerWaitlistEntryId: null,
     viewerWaitlistPosition: null,
     timedReservations: [],
+    ...overrides,
+  };
+}
+
+/** No full-day holder, but one or more guest blocks — `toSpotView`'s `'timed'` appearance. */
+function timedSpot(overrides: Partial<DaySpotOverview> = {}): DaySpotOverview {
+  return {
+    spot: {
+      id: 'spot-timed',
+      label: 'E2.95',
+      group: 'IT',
+      active: true,
+      createdAt: T0,
+      updatedAt: T0,
+    },
+    reservation: null,
+    waitlistCount: 0,
+    viewerWaitlistEntryId: null,
+    viewerWaitlistPosition: null,
+    timedReservations: [
+      {
+        id: 'block-1',
+        startTime: '09:00',
+        endTime: '10:30',
+        guestName: 'Jan Host',
+        licensePlate: null,
+        createdAt: T0,
+      },
+    ],
     ...overrides,
   };
 }
@@ -286,6 +321,8 @@ function setup(
   apiMocks.reservationCancel.mockResolvedValue(undefined);
   apiMocks.waitlistJoin.mockResolvedValue(undefined);
   apiMocks.waitlistLeave.mockResolvedValue(undefined);
+  apiMocks.timedReservationCreate.mockResolvedValue(undefined);
+  apiMocks.timedReservationCancel.mockResolvedValue(undefined);
   // The bulk modal reads the spot list for its preferred-spot label. Its own
   // behaviour is `bulk-modal.spec.tsx`'s; here it only has to not fail.
   apiMocks.spotList.mockResolvedValue({ spots: [] });
@@ -575,6 +612,68 @@ describe('LotScreen — every write closes the dialog and invalidates the day', 
     );
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(invalidate).toHaveBeenCalledWith(expect.objectContaining({ queryKey: dayKey(DATE) }));
+  });
+
+  it('an admin booking a guest time block on a timed spot', async () => {
+    const { user, invalidate } = setup({
+      profile: profile({ role: 'ADMIN' }),
+      day: dayOverview({ spots: [freeSpot(), takenSpot(), mineSpot(), timedSpot()] }),
+    });
+
+    await user.click(screen.getByRole('button', { name: /^tileTimedLabel: label=E2\.95,/u }));
+    await user.type(await screen.findByLabelText('guestNameField'), 'Petr Nový');
+    await user.selectOptions(screen.getByLabelText('startTimeField'), '11:00');
+    await user.selectOptions(screen.getByLabelText('endTimeField'), '11:30');
+    await user.click(screen.getByRole('button', { name: 'ctaReserve' }));
+
+    await waitFor(() =>
+      expect(apiMocks.timedReservationCreate.mock.calls[0]?.[0]).toEqual({
+        parkingSpotId: 'spot-timed',
+        date: DATE,
+        guestName: 'Petr Nový',
+        licensePlate: null,
+        startTime: '11:00',
+        endTime: '11:30',
+      })
+    );
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(invalidate).toHaveBeenCalledWith(expect.objectContaining({ queryKey: dayKey(DATE) }));
+  });
+
+  it('an admin cancelling a guest block leaves the dialog open, and still invalidates the day', async () => {
+    const { user, invalidate } = setup({
+      profile: profile({ role: 'ADMIN' }),
+      day: dayOverview({ spots: [freeSpot(), takenSpot(), mineSpot(), timedSpot()] }),
+    });
+
+    await user.click(screen.getByRole('button', { name: /^tileTimedLabel: label=E2\.95,/u }));
+    await user.click(await screen.findByRole('button', { name: 'timedBlockCancel' }));
+
+    await waitFor(() =>
+      expect(apiMocks.timedReservationCancel.mock.calls[0]?.[0]).toEqual({
+        timedReservationId: 'block-1',
+      })
+    );
+    expect(invalidate).toHaveBeenCalledWith(expect.objectContaining({ queryKey: dayKey(DATE) }));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('a create failure on a guest time block behaves like any other create failure', async () => {
+    const { user, invalidate } = setup({
+      profile: profile({ role: 'ADMIN' }),
+      day: dayOverview({ spots: [freeSpot(), takenSpot(), mineSpot(), timedSpot()] }),
+    });
+    apiMocks.timedReservationCreate.mockRejectedValue(
+      await failureWithCode('SPOT_ALREADY_RESERVED')
+    );
+
+    await user.click(screen.getByRole('button', { name: /^tileTimedLabel: label=E2\.95,/u }));
+    await user.type(await screen.findByLabelText('guestNameField'), 'Petr Nový');
+    await user.click(screen.getByRole('button', { name: 'ctaReserve' }));
+
+    expect(await screen.findByText('SPOT_ALREADY_RESERVED')).toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(invalidate).not.toHaveBeenCalled();
   });
 
   it('invalidates reservation.myMonth for the day’s month too (I6)', async () => {

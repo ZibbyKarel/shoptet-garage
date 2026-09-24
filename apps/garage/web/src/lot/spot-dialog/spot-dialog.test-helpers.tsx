@@ -71,6 +71,8 @@ export function renderDialog(overrides: DialogOverrides = {}) {
     onJoinWaitlist: jest.fn(),
     onLeaveWaitlist: jest.fn(),
     onCancelReservation: jest.fn(),
+    onReserveTimed: jest.fn(),
+    onCancelTimedReservation: jest.fn(),
   };
 
   function tree(props: DialogOverrides) {
