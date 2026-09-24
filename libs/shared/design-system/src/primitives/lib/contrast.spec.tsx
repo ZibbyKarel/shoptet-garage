@@ -8,6 +8,7 @@ import { BoltIcon } from './bolt-icon/bolt-icon';
 import { Button, type ButtonVariant } from './button/button';
 import { Callout, type CalloutTone } from './callout/callout';
 import { Chip, type ChipTone } from './chip/chip';
+import { EyeOffIcon } from './eye-off-icon/eye-off-icon';
 import { IconCircle, type IconCircleTone } from './icon-circle/icon-circle';
 import { Input } from './input/input';
 import { Link } from './link/link';
@@ -574,6 +575,25 @@ describe('colour contrast of the pairings this lib chooses', () => {
 
       expect(ratioOf(tokenAfter('fill-'), 'neutral-600')).toBeGreaterThanOrEqual(NON_TEXT);
       expect(ratioOf(tokenAfter('stroke-'), 'bg')).toBeGreaterThanOrEqual(NON_TEXT);
+    });
+  });
+
+  describe('EyeOffIcon', () => {
+    /** WCAG 2.1 SC 1.4.11: a graphic that carries information needs 3:1 against its surroundings. */
+    const NON_TEXT = 3;
+
+    it('stays visible on the lot asphalt through its stroke', () => {
+      render(<EyeOffIcon label="Skryté" />);
+      const classes = (
+        screen.getByRole('img', { name: 'Skryté' }).getAttribute('class') ?? ''
+      ).split(/\s+/);
+      const stroke =
+        classes
+          .filter((cls) => cls.startsWith('stroke-'))
+          .map((cls) => cls.slice('stroke-'.length))
+          .find((token) => token in COLOR_UTILITIES) ?? 'no stroke-* colour';
+
+      expect(ratioOf(stroke, 'neutral-600')).toBeGreaterThanOrEqual(NON_TEXT);
     });
   });
 });

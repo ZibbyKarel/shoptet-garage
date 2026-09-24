@@ -4,6 +4,7 @@ import {
   Badge,
   BoltIcon,
   Box,
+  EyeOffIcon,
   IconCircle,
   INSET_FOCUS_RING,
   Stack,
@@ -265,19 +266,12 @@ export function SpotTile({ spot, onOpen, onAdminOpen }: SpotTileProps) {
         ) : null}
       </button>
 
-      {spot.evCharger || spot.hidden ? (
+      {spot.evCharger ? (
         // A sibling of the bay's button, like the waitlist pill: the bolt has
         // its own accessible name and its own place in the reading order, so
         // the button's `accessibleName` above stays exactly what it was.
         <Box placement="top-left" interactive="none">
-          <Stack direction="row" align="center" spacing={1}>
-            {spot.evCharger ? <BoltIcon label={t('evCharger')} /> : null}
-            {spot.hidden ? (
-              <Badge size="sm" tone="neutral">
-                {t('hiddenSpot')}
-              </Badge>
-            ) : null}
-          </Stack>
+          <BoltIcon label={t('evCharger')} />
         </Box>
       ) : null}
 
@@ -287,19 +281,24 @@ export function SpotTile({ spot, onOpen, onAdminOpen }: SpotTileProps) {
         </Box>
       ) : null}
 
-      {spot.showAdminMenu ? (
+      {spot.hidden || spot.showAdminMenu ? (
         <Box placement="top-right">
-          <button
-            type="button"
-            onClick={() => {
-              onAdminOpen(spot.spotId);
-            }}
-            aria-label={t('spotMenu', { label: spot.label })}
-            // eslint-disable-next-line no-restricted-syntax -- `.lot-spot-menu`: the admin `⋯` control's own chrome (size, translucent fill, hover inversion) — no icon-button primitive exists for it, see the report.
-            className="lot-spot-menu"
-          >
-            ⋯
-          </button>
+          <Stack direction="column" align="center" spacing={1}>
+            {spot.showAdminMenu ? (
+              <button
+                type="button"
+                onClick={() => {
+                  onAdminOpen(spot.spotId);
+                }}
+                aria-label={t('spotMenu', { label: spot.label })}
+                // eslint-disable-next-line no-restricted-syntax -- `.lot-spot-menu`: the admin `⋯` control's own chrome (size, translucent fill, hover inversion) — no icon-button primitive exists for it, see the report.
+                className="lot-spot-menu"
+              >
+                ⋯
+              </button>
+            ) : null}
+            {spot.hidden ? <EyeOffIcon label={t('hiddenSpot')} /> : null}
+          </Stack>
         </Box>
       ) : null}
     </div>

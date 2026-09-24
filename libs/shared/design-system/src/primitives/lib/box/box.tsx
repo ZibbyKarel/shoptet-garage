@@ -138,12 +138,11 @@ export type BoxPlacement =
 
 /**
  * Inset + translate utilities per corner/edge. `2` (`0.5rem`) is the one
- * offset the design uses for an overlay pinned to a tile's edge — `spot-tile`'s
- * admin `⋯` button (`top-right`) and its waitlist badge (`bottom-center`) —
- * kept as the same step across every placement below rather than let each
- * one drift. Spelled out as literals, not built from a shared constant:
- * Tailwind v4 scans source text statically, so `` `top-${x}` `` would never
- * match anything and emit no CSS.
+ * offset the design uses for an overlay pinned to a tile's edge, kept as the
+ * same step across every placement below rather than let each one drift.
+ * Spelled out as literals, not built from a shared constant: Tailwind v4
+ * scans source text statically, so `` `top-${x}` `` would never match
+ * anything and emit no CSS.
  */
 const PLACEMENT_CLASSES: Record<BoxPlacement, string> = {
   'top-left': 'left-2 top-2',

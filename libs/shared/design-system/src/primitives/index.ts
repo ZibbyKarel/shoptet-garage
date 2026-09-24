@@ -11,6 +11,7 @@ export * from './lib/container/container';
 export * from './lib/control-size';
 export * from './lib/cx';
 export * from './lib/divider/divider';
+export * from './lib/eye-off-icon/eye-off-icon';
 export * from './lib/field/field';
 export * from './lib/gap';
 export * from './lib/grid/grid';

@@ -283,10 +283,31 @@ describe('LotGrid', () => {
     expect(screen.queryByRole('img', { name: 'evCharger' })).not.toBeInTheDocument();
   });
 
-  it('draws the charger mark and the hidden badge together', () => {
+  it('draws the charger mark and the hidden mark together, both named', () => {
     renderGrid([group([spot({ evCharger: true, hidden: true })])]);
     expect(screen.getByRole('img', { name: 'evCharger' })).toBeInTheDocument();
-    expect(screen.getByText('hiddenSpot')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'hiddenSpot' })).toBeInTheDocument();
+  });
+
+  it('draws the hidden mark beside the bay, not as a badge inside or over its label', () => {
+    renderGrid([group([spot({ hidden: true })])]);
+
+    const eye = screen.getByRole('img', { name: 'hiddenSpot' });
+    expect(eye.closest('button')).toBeNull();
+    expect(screen.getByRole('button')).toHaveAccessibleName('reserveSpotAction: label=E2.92, free');
+  });
+
+  it('draws no hidden mark on a visible bay', () => {
+    renderGrid([group([spot()])]);
+    expect(screen.queryByRole('img', { name: 'hiddenSpot' })).not.toBeInTheDocument();
+  });
+
+  it('draws the hidden mark beside the admin menu', () => {
+    renderGrid([group([spot({ hidden: true, showAdminMenu: true })])]);
+
+    const eye = screen.getByRole('img', { name: 'hiddenSpot' });
+    const menu = screen.getByRole('button', { name: /spotMenu/u });
+    expect(eye.parentElement).toBe(menu.parentElement);
   });
 
   it('draws a timed bay with its blocks, capped at two lines plus a count', () => {

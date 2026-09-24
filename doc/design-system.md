@@ -458,6 +458,14 @@ and the outline is what clears it on white. `contrast.spec.tsx` pins both.
 The web app uses it for the EV-charger mark
 (`doc/decision/0317-the-ev-charger-flag-is-informational-and-shown-to-everyone`).
 
+### `EyeOffIcon`
+
+A crossed-out eye, drawn as an SVG stroke in `--neutral-0`. Same `size` and
+`label` contract as `BoltIcon`. Its one surface is the lot asphalt, where the
+stroke clears 3:1; `contrast.spec.tsx` pins it. The web app uses it for the
+hidden-spot mark on the lot tile
+(`doc/decision/0316-hidden-spots-are-seen-and-booked-by-admins-only`).
+
 ### `ToggleTile`
 
 One option of a selected/selectable-unselected/not-interactive button group –

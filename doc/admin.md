@@ -105,8 +105,9 @@ and `Smazat` (a `ConfirmDialog`).
 - `Smazat` calls `admin.spot.deactivate` — a soft delete, refused while
   somebody holds the spot from today onwards. `doc/decision/0163-*`.
 - `Skryté` hides a spot from everybody but admins — it is not a retirement,
-  refuses nothing, and a hidden row carries a `Skryté` badge here and on the
-  lot. `doc/decision/0316-hidden-spots-are-seen-and-booked-by-admins-only`.
+  refuses nothing, and a hidden row carries a `Skryté` badge here and a
+  crossed-out eye in the tile's top-right corner on the lot.
+  `doc/decision/0316-hidden-spots-are-seen-and-booked-by-admins-only`.
 - `Nabíječka` marks an EV charger. It is information only and refuses
   nothing. A spot with a charger carries a green bolt here and, for every
   viewer, on the lot.
