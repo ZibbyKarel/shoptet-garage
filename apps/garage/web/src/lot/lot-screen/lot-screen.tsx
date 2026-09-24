@@ -239,6 +239,19 @@ export function LotScreen() {
   }, [invalidateDay]);
 
   /**
+   * `onMutationSuccess` minus closing the dialog — for a write that leaves
+   * the dialog open (`cancelTimedReservation`, below) but must still clear
+   * whatever error a previous attempt left behind, or a stale
+   * `actionError`/`holderLimitMessage` would keep showing under a since-fixed
+   * dialog.
+   */
+  const onMutationSuccessKeepOpen = useCallback(() => {
+    setActionError(null);
+    setHolderLimitMessage(null);
+    invalidateDay();
+  }, [invalidateDay]);
+
+  /**
    * `waitlist.leave`/`reservation.cancel` report a failure the same plain
    * way — clear whatever `holderLimitMessage` a previous write left behind
    * and fall back to the code-mapped catalogue string. `createReservation`
@@ -346,7 +359,7 @@ export function LotScreen() {
    */
   const cancelTimedReservation = useMutation({
     ...api.admin.timedReservation.cancel.mutationOptions(),
-    onSuccess: invalidateDay,
+    onSuccess: onMutationSuccessKeepOpen,
     onError: onWriteError,
   });
 

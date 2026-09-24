@@ -17,6 +17,7 @@
 import { Box, Input, Select, Stack } from '@garage/design-system/primitives';
 import { FormField } from '@garage/form';
 import { HALF_HOUR_END_TIMES, HALF_HOUR_START_TIMES, useTranslations } from '@garage/i18n';
+import { formatTimeOfDay } from '../lot-view';
 import { GUEST_HOLDER_VALUE, plateHintFor } from './holder-input';
 import type { HolderDuration, HolderFormValues, HolderOption } from './holder-input';
 
@@ -32,14 +33,6 @@ export interface HolderFieldsProps {
    * is rendered — only the time-range selects, always.
    */
   readonly timedOnly: boolean;
-}
-
-/**
- * `'9'`, `'9:30'` — the same leading-zero stripping `formatTimeRange` does,
- * for one side of a range rather than both.
- */
-function formatTimeOfDay(time: string): string {
-  return time.replace(/^0/, '');
 }
 
 export function HolderFields({ options, holderId, duration, timedOnly }: HolderFieldsProps) {

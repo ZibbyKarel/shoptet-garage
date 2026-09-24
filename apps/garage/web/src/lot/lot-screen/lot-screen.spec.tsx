@@ -658,6 +658,31 @@ describe('LotScreen — every write closes the dialog and invalidates the day', 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
+  it('cancelling a guest block clears a stale error from an earlier failed write', async () => {
+    // A cancel leaves the dialog open on purpose (several blocks can exist),
+    // so any actionError/holderLimitMessage a previous failed write left
+    // behind must be cleared explicitly — otherwise it keeps showing under a
+    // dialog that has since succeeded.
+    const { user } = setup({
+      profile: profile({ role: 'ADMIN' }),
+      day: dayOverview({ spots: [freeSpot(), takenSpot(), mineSpot(), timedSpot()] }),
+    });
+    apiMocks.timedReservationCreate.mockRejectedValue(
+      await failureWithCode('SPOT_ALREADY_RESERVED')
+    );
+
+    await user.click(screen.getByRole('button', { name: /^tileTimedLabel: label=E2\.95,/u }));
+    await user.type(await screen.findByLabelText('guestNameField'), 'Petr Nový');
+    await user.click(screen.getByRole('button', { name: 'ctaReserve' }));
+    expect(await screen.findByText('SPOT_ALREADY_RESERVED')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'timedBlockCancel' }));
+
+    await waitFor(() =>
+      expect(screen.queryByText('SPOT_ALREADY_RESERVED')).not.toBeInTheDocument()
+    );
+  });
+
   it('a create failure on a guest time block behaves like any other create failure', async () => {
     const { user, invalidate } = setup({
       profile: profile({ role: 'ADMIN' }),

@@ -205,13 +205,20 @@ export interface SpotView {
 }
 
 /**
- * `'9:00–10:30'` — leading zero stripped off the hour (the design never
- * writes "09:00"), minutes kept as-is, joined with an en dash. `'24:00'`
- * (midnight, end-of-day) has no leading zero to strip and is left alone.
+ * `'9:00'` — leading zero stripped off the hour (the design never writes
+ * "09:00"), minutes kept as-is. `'24:00'` (midnight, end-of-day) has no
+ * leading zero to strip and is left alone.
+ */
+export function formatTimeOfDay(time: string): string {
+  return time.replace(/^0/, '');
+}
+
+/**
+ * `'9:00–10:30'` — both ends through `formatTimeOfDay`, joined with an en
+ * dash.
  */
 export function formatTimeRange(block: { startTime: string; endTime: string }): string {
-  const stripHourZero = (time: string): string => time.replace(/^0/, '');
-  return `${stripHourZero(block.startTime)}–${stripHourZero(block.endTime)}`;
+  return `${formatTimeOfDay(block.startTime)}–${formatTimeOfDay(block.endTime)}`;
 }
 
 /**
