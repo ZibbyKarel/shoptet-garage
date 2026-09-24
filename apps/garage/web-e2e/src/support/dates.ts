@@ -10,10 +10,11 @@
  * The rules are the application's own, imported from
  * `@garage/shared-types` — never re-implemented here:
  *
- * - the **month** must be open, and under `AUTO` the current month never is
- *   (its window closes the day before it starts), so the suite works in the
- *   *next* month, which `reset-e2e` guarantees is open by setting
- *   `openDaysBefore` to its maximum;
+ * - the **month** must be open, and the current month is already partway
+ *   through by whatever day `today` falls on, so it may not have enough
+ *   business days left for every spec's slot; the suite works in the *next*
+ *   month instead, a full, untouched month, which `reset-e2e` guarantees is
+ *   open by setting `openDaysBefore` to its maximum;
  * - the **day** must be a business day: `isBusinessDay` excludes weekends and
  *   Czech public holidays, which `isReservableDay` requires.
  */

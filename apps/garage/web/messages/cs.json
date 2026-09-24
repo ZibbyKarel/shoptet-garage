@@ -113,6 +113,7 @@
     "dayCellBlocked": "{date} — nelze vybrat",
     "gridLabel": "Výběr data",
     "bannerOpen": "Rezervace na {month} jsou otevřené — do {until} platí měsíční limit rezervací, potom lze rezervovat i zbylá volná místa.",
+    "bannerOpenUncapped": "Rezervace na {month} jsou otevřené — měsíční limit už neplatí, rezervovat lze všechna volná místa.",
     "bannerOpenForced": "Rezervace na {month} jsou otevřené.",
     "bannerLockedAdmin": "Rezervace na {month} jsou uzamčené. Jako admin je můžete dál upravovat i rušit.",
     "bannerLockedUser": "Rezervace na {month} jsou uzamčené. Novou rezervaci už nezaložíte, svoji můžete kdykoliv zrušit.",

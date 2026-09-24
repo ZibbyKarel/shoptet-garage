@@ -12,13 +12,13 @@ while it is **in force**: lock mode `AUTO` and today inside the target month's
 window (`reservationWindowRange`, by default the week before the month starts).
 `isMonthlyCapInForce()` in `@garage/shared-types` is the single definition.
 
-| situation                 | normal user may book?               | cap                           |
-| ------------------------- | ----------------------------------- | ----------------------------- |
-| `AUTO`, before the window | no (`OUT_OF_HORIZON`)               | —                             |
-| `AUTO`, inside the window | yes                                 | in force                      |
-| `AUTO`, month running     | **yes** (was `RESERVATIONS_LOCKED`) | **none**                      |
-| `FORCE_OPEN`              | yes                                 | **none**                      |
-| `FORCE_LOCKED`            | no (`RESERVATIONS_LOCKED`)          | none (admins only, as before) |
+| situation                 | normal user may book?               | cap                                                                                   |
+| ------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------- |
+| `AUTO`, before the window | no (`OUT_OF_HORIZON`)               | —                                                                                     |
+| `AUTO`, inside the window | yes                                 | in force                                                                              |
+| `AUTO`, month running     | **yes** (was `RESERVATIONS_LOCKED`) | **none**                                                                              |
+| `FORCE_OPEN`              | yes                                 | **none**                                                                              |
+| `FORCE_LOCKED`            | no (`RESERVATIONS_LOCKED`)          | booking is admin-only as before; the cap does not apply (a change — see Consequences) |
 
 To make "month running" bookable, `monthLockState` under `AUTO` no longer
 returns `LOCKED` from the 1st: it is `NOT_YET_OPEN` before the window and

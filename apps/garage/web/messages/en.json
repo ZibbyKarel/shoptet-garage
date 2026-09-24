@@ -113,6 +113,7 @@
     "dayCellBlocked": "{date} — can’t be selected",
     "gridLabel": "Date selection",
     "bannerOpen": "Reservations for {month} are open — the monthly reservation limit applies until {until}, after that any remaining free spots can be reserved too.",
+    "bannerOpenUncapped": "Reservations for {month} are open — the monthly limit no longer applies, any free spot can be reserved.",
     "bannerOpenForced": "Reservations for {month} are open.",
     "bannerLockedAdmin": "Reservations for {month} are locked. As an admin you can still edit and cancel them.",
     "bannerLockedUser": "Reservations for {month} are locked. You can’t create a new reservation, but you can cancel yours at any time.",

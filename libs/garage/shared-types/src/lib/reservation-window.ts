@@ -35,7 +35,10 @@ import type { MonthLockState, ReservationLockMode } from './domain-constants';
 export interface ReservationWindowRange {
   /** First day the month can be booked: first day of the month − `openDaysBefore`. */
   readonly from: DateOnly;
-  /** Last day the month can be booked: the day before the month starts. */
+  /**
+   * Last day the window's monthly cap applies: the day before the month
+   * starts. Booking itself stays open after it — only the cap ends here.
+   */
   readonly to: DateOnly;
 }
 
