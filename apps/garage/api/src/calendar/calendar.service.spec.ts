@@ -42,6 +42,16 @@ describe('CalendarService', () => {
     ]);
   });
 
+  it('keeps a reservation on a hidden spot in its holder’s feed', async () => {
+    const spot = double.seedSpot({ label: 'SECRET', hidden: true });
+    const user = double.seedUser({ icsToken: 'hidden-holder' });
+    double.seedReservation({ parkingSpotId: spot.id, userId: user.id, date: TODAY });
+
+    await expect(service.feedEntriesForToken('hidden-holder', NOW)).resolves.toMatchObject([
+      { spotLabel: 'SECRET' },
+    ]);
+  });
+
   it('returns nobody else’s reservations', async () => {
     const spot = double.seedSpot({ label: 'E2.92' });
     const other = double.seedSpot({ label: 'E2.93' });

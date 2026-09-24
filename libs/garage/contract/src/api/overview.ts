@@ -83,7 +83,12 @@ export const dayOverviewOutputSchema = z.object({
    * this value and never can be.
    */
   canReserveMonth: z.boolean(),
-  /** Every active spot, in a stable order chosen by the backend. */
+  /**
+   * Every active spot the caller may see, in a stable order chosen by the
+   * backend: all of them for an admin (hidden ones with `spot.hidden: true`),
+   * and for anybody else the visible ones plus a hidden one they hold or are
+   * queued for that day (`doc/decision/0316-*`).
+   */
   spots: z.array(daySpotOverviewSchema),
   /**
    * The caller's own reservation that day, if any. There is at most one, by the

@@ -76,16 +76,28 @@ export class SlackNotificationService {
    * person.
    */
   async notifySpotFreed(notice: SpotFreedNotice): Promise<SlackNotificationOutcome> {
-    const label = await this.spotLabel(notice.parkingSpotId);
-    if (label === undefined) {
+    const spot = await this.prisma.client.parkingSpot.findUnique({
+      where: { id: notice.parkingSpotId },
+      select: { label: true, hidden: true },
+    });
+    if (spot === null) {
       this.logger.warn(
         { parkingSpotId: notice.parkingSpotId, reservationId: notice.reservationId },
         'Freed spot has no row; Slack notice skipped'
       );
       return 'skipped';
     }
+    if (spot.hidden) {
+      // The channel is everybody; a hidden spot is nobody's but the admins'
+      // (`doc/decision/0316-*`). Not a warning — nothing went wrong.
+      this.logger.debug(
+        { parkingSpotId: notice.parkingSpotId, reservationId: notice.reservationId },
+        'Freed spot is hidden; Slack notice skipped'
+      );
+      return 'skipped';
+    }
 
-    return this.slack.postToChannel(spotFreedMessage(label, notice.date));
+    return this.slack.postToChannel(spotFreedMessage(spot.label, notice.date));
   }
 
   /**
@@ -148,13 +160,14 @@ export class SlackNotificationService {
    * second definition of it. Guest time blocks (`TimedReservation`,
    * `doc/decision/0314-*`) make a spot unavailable for a full day too, even
    * though the cell has no `Reservation` row, so they are subtracted the same
-   * way.
+   * way. Hidden spots are left out of both the count and the list — the
+   * channel is read by everybody (`doc/decision/0316-*`).
    */
   private async collectDailySummary(date: DateOnly): Promise<DailySummary> {
     const dateColumn = toDateColumn(date);
     const [spots, reservations, timedReservations, waitingCount] = await Promise.all([
       this.prisma.client.parkingSpot.findMany({
-        where: { active: true },
+        where: { active: true, hidden: false },
         orderBy: { label: 'asc' },
         select: { id: true, label: true },
       }),

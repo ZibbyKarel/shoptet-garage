@@ -38,6 +38,37 @@ describe('DayOverviewService', () => {
     expect(result.spots.map((row) => row.spot.label)).toEqual(['IT1', 'S1']);
   });
 
+  it('shows hidden spots to an admin, marked, and to nobody else', async () => {
+    double.seedSpot({ label: 'SEEN' });
+    double.seedSpot({ label: 'SECRET', hidden: true });
+
+    const asAdmin = await overview.getDay({ date: TODAY }, authenticated('boss', 'ADMIN'), TODAY);
+    const asUser = await overview.getDay({ date: TODAY }, authenticated('viewer'), TODAY);
+
+    expect(asAdmin.spots.map((row) => [row.spot.label, row.spot.hidden])).toEqual([
+      ['SECRET', true],
+      ['SEEN', false],
+    ]);
+    expect(asUser.spots.map((row) => row.spot.label)).toEqual(['SEEN']);
+  });
+
+  it('still shows a normal user the hidden spot they hold or are queued for that day', async () => {
+    const held = double.seedSpot({ label: 'HELD', hidden: true });
+    const queued = double.seedSpot({ label: 'QUEUED', hidden: true });
+    double.seedSpot({ label: 'OTHER', hidden: true });
+    const viewer = double.seedUser();
+    const holder = double.seedUser();
+    const mine = double.seedReservation({ parkingSpotId: held.id, userId: viewer.id, date: TODAY });
+    double.seedReservation({ parkingSpotId: queued.id, userId: holder.id, date: TODAY });
+    double.seedWaitlistEntry({ parkingSpotId: queued.id, userId: viewer.id, date: TODAY });
+
+    const result = await overview.getDay({ date: TODAY }, authenticated(viewer.id), TODAY);
+
+    expect(result.spots.map((row) => row.spot.label)).toEqual(['HELD', 'QUEUED']);
+    expect(result.viewerReservationId).toBe(mine.id);
+    expect(result.spots[1]?.viewerWaitlistPosition).toBe(1);
+  });
+
   it('attaches the holder of each reserved spot, and nothing else about them', async () => {
     const spot = double.seedSpot({ label: 'A1' });
     const holder = double.seedUser({ name: 'Alice', licensePlate: '1AB 2345' });
