@@ -7,3 +7,7 @@
 3. [x] Admin musí mít možnost nějaké místo označit jako skryté - tedy vidí jej jen admini (main@8f9bb0a)
 
 4. [x] Některá parkovací místa mají nabíječku na elektromobily. Admin musí mít možnost to u parkovacího místa nastavit + u parkovacího místa, které má elektro nabíječku se bude zobrazovat symbol pro elektronabíječky (takový ten zelený blesk) (main@2c3ec94)
+
+5. [ ] pokud je místo skryté, "Skryté" tag překrývá označení parkovacího místa na přehledu. Zkusíme tam zobrazit míst tahu podobně jako blesk pro nabíječku přeškrtnuté oko ale napravo
+
+6. [ ] při přidávání parkovacího místa musím mít možnost vyplnit zda má el. nabíječku či ne
