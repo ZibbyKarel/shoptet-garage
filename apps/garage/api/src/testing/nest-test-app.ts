@@ -149,13 +149,25 @@ export async function startApiTestApp(options: ApiTestAppOptions): Promise<ApiTe
   });
   const { AppModule } = await import('../app/app.module');
 
+  // A store built for one service (`InMemoryUserStore`, for `AuthUserService`)
+  // does not model every Prisma model — only `PrismaDouble` does. But the real
+  // `AppModule` boots every provider regardless of which suite is asking, and
+  // `SpotsService.onModuleInit` reads `parkingSpot` at boot. `parkingSpot`
+  // therefore gets a harmless empty answer here unless the store already
+  // provides its own (`PrismaDouble` does, and wins by spreading second).
+  const storePrisma = options.store.asPrismaService() as { client?: Record<string, unknown> };
+
   let builder: TestingModuleBuilder = Test.createTestingModule({
     imports: [AppModule],
     ...(options.controllers === undefined ? {} : { controllers: options.controllers }),
   })
     .overrideProvider(PrismaService)
     .useValue({
-      ...options.store.asPrismaService(),
+      ...storePrisma,
+      client: {
+        parkingSpot: { findMany: () => Promise.resolve([]) },
+        ...storePrisma.client,
+      },
       ping: jest.fn(),
       onModuleInit: jest.fn(),
       onModuleDestroy: jest.fn(),
