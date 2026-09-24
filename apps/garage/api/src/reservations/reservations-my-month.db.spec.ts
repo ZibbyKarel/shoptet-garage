@@ -22,6 +22,7 @@ import {
   connect,
   seedSpot,
   seedUser,
+  setLockMode,
 } from '../testing/database/reservation-harness';
 
 /** Nothing in this suite asserts on published events; a plain no-op stands in. */
@@ -61,6 +62,10 @@ describe('ReservationsService.myMonth against a real PostgreSQL', () => {
     await client.$disconnect();
   });
 
+  // Another suite may have left the singleton on an override; the cap in the
+  // expectations below only exists under `AUTO`.
+  beforeEach(() => setLockMode(client, 'AUTO'));
+
   it('includes the last day of the month and excludes the first day of the next', async () => {
     const spot = await seedSpot(client);
     const user = await seedUser(client);
@@ -71,7 +76,11 @@ describe('ReservationsService.myMonth against a real PostgreSQL', () => {
       data: { parkingSpotId: spot.id, userId: user.id, date: toDateColumn('2026-10-01') },
     });
 
-    const result = await reservations.myMonth({ month: '2026-09' }, authenticated(user.id));
+    const result = await reservations.myMonth(
+      { month: '2026-09' },
+      authenticated(user.id),
+      '2026-08-31'
+    );
 
     expect(result).toEqual({
       month: '2026-09',

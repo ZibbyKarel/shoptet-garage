@@ -266,9 +266,10 @@ export class ReservationsService {
    */
   async myMonth(
     input: MyMonthReservationsInput,
-    actor: AuthenticatedUser
+    actor: AuthenticatedUser,
+    today: DateOnly = todayInPrague()
   ): Promise<MyMonthReservationsOutput> {
-    return this.monthSummary(actor.id, input.month);
+    return this.monthSummary(actor.id, input.month, today);
   }
 
   /**
@@ -287,9 +288,10 @@ export class ReservationsService {
    */
   async userMonth(
     input: AdminUserMonthReservationsInput,
-    _actor: AuthenticatedUser
+    _actor: AuthenticatedUser,
+    today: DateOnly = todayInPrague()
   ): Promise<MonthReservations> {
-    return this.monthSummary(input.userId, input.month);
+    return this.monthSummary(input.userId, input.month, today);
   }
 
   /**
@@ -310,12 +312,19 @@ export class ReservationsService {
    * through `ReservationLimitsService` — this runs outside any transaction, so
    * it is not the transaction-scoped `readMonthlyReservationCap` the writers
    * use. Both default a missing row to `DEFAULT_MONTHLY_RESERVATION_CAP`.
+   *
+   * `cap` is `null` whenever the writers would not enforce it — the same
+   * `isMonthlyCapInForce` they call, over the same settings.
    */
-  private async monthSummary(userId: string, month: YearMonth): Promise<MonthReservations> {
+  private async monthSummary(
+    userId: string,
+    month: YearMonth,
+    today: DateOnly
+  ): Promise<MonthReservations> {
     const from = startOfYearMonth(month);
     const to = endOfMonth(from);
 
-    const [rows, cap] = await Promise.all([
+    const [rows, cap, settings] = await Promise.all([
       this.prisma.client.reservation.findMany({
         where: {
           userId,
@@ -330,13 +339,16 @@ export class ReservationsService {
         orderBy: [{ date: 'asc' }, { id: 'asc' }],
       }),
       this.limits.monthlyCap(),
+      this.window.getSettings(),
     ]);
 
     return {
       month,
       reservedDates: rows.map((row) => toDateOnly(row.date)),
       count: rows.length,
-      cap,
+      cap: isMonthlyCapInForce(from, settings.openDaysBefore, settings.lockMode, today)
+        ? cap
+        : null,
     };
   }
 

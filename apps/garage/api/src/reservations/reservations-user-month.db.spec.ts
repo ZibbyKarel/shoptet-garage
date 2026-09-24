@@ -27,6 +27,7 @@ import {
   connect,
   seedSpot,
   seedUser,
+  setLockMode,
 } from '../testing/database/reservation-harness';
 
 /** Nothing in this suite asserts on published events; a plain no-op stands in. */
@@ -55,6 +56,10 @@ describe('ReservationsService.userMonth against a real PostgreSQL', () => {
     await client.$disconnect();
   });
 
+  // Another suite may have left the singleton on an override; the cap in the
+  // expectations below only exists under `AUTO`.
+  beforeEach(() => setLockMode(client, 'AUTO'));
+
   it('counts the named user’s reservations, not the calling admin’s', async () => {
     const spot = await seedSpot(client);
     const [admin, holder] = [await seedUser(client), await seedUser(client)];
@@ -73,7 +78,8 @@ describe('ReservationsService.userMonth against a real PostgreSQL', () => {
 
     const result = await reservations.userMonth(
       { userId: holder.id, month: '2026-09' },
-      actorFor(admin, 'ADMIN')
+      actorFor(admin, 'ADMIN'),
+      '2026-08-31'
     );
 
     expect(result).toEqual({
@@ -98,7 +104,8 @@ describe('ReservationsService.userMonth against a real PostgreSQL', () => {
 
     const result = await reservations.userMonth(
       { userId: holder.id, month: '2026-09' },
-      actorFor(admin, 'ADMIN')
+      actorFor(admin, 'ADMIN'),
+      '2026-08-31'
     );
 
     expect(result).toEqual({
@@ -119,7 +126,8 @@ describe('ReservationsService.userMonth against a real PostgreSQL', () => {
 
     const result = await reservations.userMonth(
       { userId: noSuchUser, month: '2026-09' },
-      actorFor(admin, 'ADMIN')
+      actorFor(admin, 'ADMIN'),
+      '2026-08-31'
     );
 
     expect(result).toEqual({

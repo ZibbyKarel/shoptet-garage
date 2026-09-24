@@ -216,7 +216,7 @@ interface MyMonthOutput {
   readonly month: string;
   readonly reservedDates: readonly string[];
   readonly count: number;
-  readonly cap: number;
+  readonly cap: number | null;
 }
 
 interface SetupOptions {
@@ -231,6 +231,8 @@ interface SetupOptions {
   readonly spotListFails?: boolean;
   /** `reservation.myMonth`'s answer — defaults to no reservations this month. */
   readonly myMonthOutput?: MyMonthOutput;
+  /** Makes `reservation.myMonth` reject, so the summary never loads. */
+  readonly myMonthFails?: boolean;
   /** `admin.reservation.month`'s answer — defaults to no reservations this month. */
   readonly holderMonthOutput?: MyMonthOutput;
   readonly isAdmin?: boolean;
@@ -249,9 +251,13 @@ function setup(options: SetupOptions = {}) {
     apiMocks.previewBulk.mockRejectedValue(options.previewFailure);
   }
   apiMocks.confirmBulk.mockResolvedValue(options.confirmOutput ?? confirmed());
-  apiMocks.myMonth.mockResolvedValue(
-    options.myMonthOutput ?? { month: '2026-09', reservedDates: [], count: 0, cap: 5 }
-  );
+  if (options.myMonthFails === true) {
+    apiMocks.myMonth.mockRejectedValue(new TypeError('Failed to fetch'));
+  } else {
+    apiMocks.myMonth.mockResolvedValue(
+      options.myMonthOutput ?? { month: '2026-09', reservedDates: [], count: 0, cap: 5 }
+    );
+  }
   apiMocks.adminReservationMonth.mockResolvedValue(
     options.holderMonthOutput ?? { month: '2026-09', reservedDates: [], count: 0, cap: 5 }
   );
@@ -631,6 +637,33 @@ describe('BulkReservationModal — the monthly cap and the reserved-day highligh
     await user.click(screen.getByRole('button', { name: 'ctaGenerate: count=1' }));
 
     expect(await screen.findByText('errorMonthlyCapReached: cap=8')).toBeInTheDocument();
+  });
+
+  it('bounds nothing when the server says no cap applies (cap: null)', async () => {
+    // Five already held: under a cap of 5 every free day would be greyed out.
+    setup({ myMonthOutput: { month: '2026-09', reservedDates: [], count: 5, cap: null } });
+
+    const day = await screen.findByRole('button', { name: 'dayCell: date=čtvrtek 17. září 2026' });
+    expect(day).not.toBeDisabled();
+    expect(screen.queryByText(/^capNote:/)).not.toBeInTheDocument();
+  });
+
+  it('still bounds the selection at the default cap when the month summary fails to load', async () => {
+    const { user } = setup({ myMonthFails: true });
+
+    for (const label of [
+      'dayCell: date=úterý 1. září 2026',
+      'dayCell: date=středa 2. září 2026',
+      'dayCell: date=čtvrtek 3. září 2026',
+      'dayCell: date=pátek 4. září 2026',
+      'dayCell: date=pondělí 7. září 2026',
+    ]) {
+      await user.click(screen.getByRole('button', { name: label }));
+    }
+
+    expect(
+      screen.getByRole('button', { name: 'dayCellCapped: date=úterý 8. září 2026' })
+    ).toBeDisabled();
   });
 });
 

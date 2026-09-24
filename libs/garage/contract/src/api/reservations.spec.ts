@@ -207,6 +207,11 @@ describe('myMonthReservationsOutputSchema', () => {
     expect(myMonthReservationsOutputSchema.parse(output)).toEqual(output);
   });
 
+  it('accepts a null cap — no cap applies to this month today', () => {
+    const output = { month: '2026-09', reservedDates: [], count: 7, cap: null };
+    expect(myMonthReservationsOutputSchema.parse(output)).toEqual(output);
+  });
+
   it('rejects a negative count', () => {
     expect(
       myMonthReservationsOutputSchema.safeParse({
