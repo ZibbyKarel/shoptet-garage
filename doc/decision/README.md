@@ -210,3 +210,4 @@ for why, and take the next number from the end of this list.
 - [`0314-guest-time-blocks-are-their-own-table-and-a-trigger-keeps-them-apart-from-full-days`](0314-guest-time-blocks-are-their-own-table-and-a-trigger-keeps-them-apart-from-full-days.md) — 0314 – Guest time blocks are their own table, and a trigger keeps them apart from full days
 - [`0315-the-monthly-cap-applies-only-inside-the-auto-window`](0315-the-monthly-cap-applies-only-inside-the-auto-window.md) — 0315 – The monthly cap applies only inside the AUTO window, and a running month stays open
 - [`0316-hidden-spots-are-seen-and-booked-by-admins-only`](0316-hidden-spots-are-seen-and-booked-by-admins-only.md) — 0316 – Hidden spots are seen and booked by admins only
+- [`0317-the-ev-charger-flag-is-informational-and-shown-to-everyone`](0317-the-ev-charger-flag-is-informational-and-shown-to-everyone.md) — 0317 – The EV charger flag is informational and shown to everyone
