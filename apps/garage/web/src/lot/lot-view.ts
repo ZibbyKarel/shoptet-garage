@@ -188,6 +188,12 @@ export interface SpotView {
    */
   readonly hidden: boolean;
   /**
+   * The spot has an EV charger. Shown to **every** viewer, unlike `hidden`:
+   * it is information about the bay, not about who may see it
+   * (`doc/decision/0317-the-ev-charger-flag-is-informational-and-shown-to-everyone`).
+   */
+  readonly evCharger: boolean;
+  /**
    * The holder is a guest an admin booked the bay for. There is no user behind
    * the name, so it is never `isMine` and never carries a per-user car colour.
    */
@@ -341,6 +347,7 @@ export function toSpotView(row: DaySpotOverview, context: LotViewContext): SpotV
     viewerWaitlistPosition: row.viewerWaitlistPosition,
     showAdminMenu: context.isAdmin && isTaken,
     hidden: context.isAdmin && row.spot.hidden,
+    evCharger: row.spot.evCharger,
     holderIsGuest: holder !== null && holder.kind === 'GUEST',
     infoReason,
     timedBlocks: hasBlocks ? timedBlocks : [],

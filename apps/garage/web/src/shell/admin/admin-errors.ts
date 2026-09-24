@@ -60,6 +60,7 @@ export type AdminWrite =
   | 'spotRetire'
   | 'spotRevive'
   | 'spotVisibility'
+  | 'spotEvCharger'
   | 'windowUpdate'
   | 'limitsUpdate';
 
@@ -165,6 +166,16 @@ const MESSAGES: Record<
       // No `CONFLICT` and no `VALIDATION_FAILED`: hiding is not retiring
       // (`SpotsService.update` checks commitments only when `active` goes to
       // `false`), and neither a label nor a group is sent.
+      NOT_FOUND: 'errSpotNotFound',
+    },
+  },
+  spotEvCharger: {
+    fallback: 'errFallbackSpot',
+    byCode: {
+      ...FORBIDDEN_ROW,
+      // No `CONFLICT` and no `VALIDATION_FAILED`: the charger flag is
+      // information only (`SpotsService.update` checks commitments only when
+      // `active` goes to `false`), and neither a label nor a group is sent.
       NOT_FOUND: 'errSpotNotFound',
     },
   },

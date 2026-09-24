@@ -62,6 +62,8 @@ const WRITE_ORIGINS: Partial<Record<AdminWrite, readonly FailureHome[]>> = {
   spotRevive: ['table'],
   // Only the row's "Skryté" switch.
   spotVisibility: ['table'],
+  // Only the row's "Nabíječka" switch.
+  spotEvCharger: ['table'],
 };
 
 /**

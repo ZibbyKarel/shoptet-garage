@@ -72,6 +72,8 @@ describe('shouldShowFailureIn', () => {
     expect(shouldShowFailureIn('spotRevive', 'delete', 'dialog')).toBe(false);
     expect(shouldShowFailureIn('spotVisibility', null, 'table')).toBe(true);
     expect(shouldShowFailureIn('spotVisibility', 'edit', 'dialog')).toBe(false);
+    expect(shouldShowFailureIn('spotEvCharger', null, 'table')).toBe(true);
+    expect(shouldShowFailureIn('spotEvCharger', 'edit', 'dialog')).toBe(false);
   });
 
   it('shows nothing at all for a write that never reaches this screen', () => {

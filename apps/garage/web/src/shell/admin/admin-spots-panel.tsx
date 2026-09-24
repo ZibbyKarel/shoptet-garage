@@ -164,6 +164,10 @@ export function AdminSpotsPanel() {
         startWrite('spotVisibility', id);
         updateSpot.mutate({ id, hidden });
       }}
+      onEvChargerChange={(id, evCharger) => {
+        startWrite('spotEvCharger', id);
+        updateSpot.mutate({ id, evCharger });
+      }}
       onDeactivate={async (id) => {
         startWrite('spotRetire', id);
         await deactivateSpot.mutateAsync({ id });

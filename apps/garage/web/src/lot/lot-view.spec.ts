@@ -267,6 +267,13 @@ describe('toSpotView', () => {
     expect(toSpotView(spotRow(), context({ isAdmin: true })).hidden).toBe(false);
   });
 
+  it('marks a spot with a charger for everybody, admin or not', () => {
+    const charged = spotRow({ spot: { ...spotRow().spot, evCharger: true } });
+    expect(toSpotView(charged, context({ isAdmin: false })).evCharger).toBe(true);
+    expect(toSpotView(charged, context({ isAdmin: true })).evCharger).toBe(true);
+    expect(toSpotView(spotRow(), context({ isAdmin: false })).evCharger).toBe(false);
+  });
+
   it('carries the waitlist through in every appearance', () => {
     const row = { waitlistCount: 2, viewerWaitlistEntryId: 'w-1', viewerWaitlistPosition: 2 };
     for (const ctx of [
