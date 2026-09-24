@@ -33,6 +33,7 @@ import type { PrismaClient } from '@garage/database';
 import { createPrismaClient } from '@garage/database';
 import { requireDatabaseUrl, unique } from '../testing/database/test-database';
 import {
+  isTimedReservationConflict,
   isWriteConflict,
   mapPrismaErrorCode,
   mapUniqueConstraintViolation,
@@ -432,6 +433,233 @@ describe('what PostgreSQL actually does', () => {
         })
       );
       expect(String(error)).toMatch(/check|constraint/i);
+    });
+  });
+
+  describe('a spot-day is one full-day reservation or non-overlapping guest blocks', () => {
+    const block = (
+      tx: Prisma.TransactionClient,
+      parkingSpotId: string,
+      startMinute: number,
+      endMinute: number
+    ) =>
+      tx.timedReservation.create({
+        data: { parkingSpotId, date: DATE, startMinute, endMinute, guestName: 'Host' },
+      });
+
+    it('an overlapping block is rejected by the blocks trigger', async () => {
+      const error = await rejectedBy(prisma, async (tx) => {
+        const spot = await seedSpot(tx);
+        await block(tx, spot.id, 540, 630);
+        return block(tx, spot.id, 600, 660);
+      });
+
+      const known = error as Prisma.PrismaClientKnownRequestError;
+      expect(mapPrismaErrorCode(known)).toBe('SPOT_ALREADY_RESERVED');
+      expect(known.meta).toMatchObject({
+        driverAdapterError: {
+          cause: { constraint: { index: 'TimedReservation_spot_day_conflict' } },
+        },
+      });
+    });
+
+    it('a block on a day with a full-day reservation is rejected by the blocks trigger', async () => {
+      const error = await rejectedBy(prisma, async (tx) => {
+        const [spot, user] = [await seedSpot(tx), await seedUser(tx)];
+        await tx.reservation.create({
+          data: { parkingSpotId: spot.id, userId: user.id, date: DATE },
+        });
+        return block(tx, spot.id, 600, 660);
+      });
+
+      const known = error as Prisma.PrismaClientKnownRequestError;
+      expect(mapPrismaErrorCode(known)).toBe('SPOT_ALREADY_RESERVED');
+      expect(known.meta).toMatchObject({
+        driverAdapterError: {
+          cause: { constraint: { index: 'TimedReservation_spot_day_conflict' } },
+        },
+      });
+    });
+
+    it('a full-day reservation on a day with a block is rejected by the reservation trigger', async () => {
+      const error = await rejectedBy(prisma, async (tx) => {
+        const [spot, user] = [await seedSpot(tx), await seedUser(tx)];
+        await block(tx, spot.id, 600, 660);
+        return tx.reservation.create({
+          data: { parkingSpotId: spot.id, userId: user.id, date: DATE },
+        });
+      });
+
+      const known = error as Prisma.PrismaClientKnownRequestError;
+      expect(mapPrismaErrorCode(known)).toBe('SPOT_ALREADY_RESERVED');
+      expect(known.meta).toMatchObject({
+        driverAdapterError: {
+          cause: { constraint: { index: 'Reservation_timed_reservation_conflict' } },
+        },
+      });
+    });
+
+    it('adjacent blocks are accepted', async () => {
+      const rolledBack = prisma.$transaction(async (tx) => {
+        const spot = await seedSpot(tx);
+        await block(tx, spot.id, 600, 660);
+        await block(tx, spot.id, 660, 720);
+        const count = await tx.timedReservation.count({ where: { parkingSpotId: spot.id } });
+        expect(count).toBe(2);
+        throw new Error('rollback');
+      });
+
+      await expect(rolledBack).rejects.toThrow('rollback');
+    });
+
+    it('a block up to midnight (23:30–24:00) is accepted', async () => {
+      const rolledBack = prisma.$transaction(async (tx) => {
+        const spot = await seedSpot(tx);
+        await block(tx, spot.id, 1410, 1440);
+        throw new Error('rollback');
+      });
+
+      await expect(rolledBack).rejects.toThrow('rollback');
+    });
+
+    it('rejects a start not on the half-hour grid', async () => {
+      const error = await rejectedBy(prisma, async (tx) => {
+        const spot = await seedSpot(tx);
+        return block(tx, spot.id, 615, 660);
+      });
+      expect(String(error)).toContain('TimedReservation_range_check');
+    });
+
+    it('rejects a zero-length block', async () => {
+      const error = await rejectedBy(prisma, async (tx) => {
+        const spot = await seedSpot(tx);
+        return block(tx, spot.id, 600, 600);
+      });
+      expect(String(error)).toContain('TimedReservation_range_check');
+    });
+
+    it('concurrent overlapping blocks: exactly one commits, the loser is SPOT_ALREADY_RESERVED', async () => {
+      const spot = await prisma.parkingSpot.create({
+        data: { label: unique('SPOT'), group: 'IT' },
+      });
+      try {
+        const started = resolvable();
+        const insertBlock = async (startMinute: number, endMinute: number) => {
+          await started.promise;
+          return prisma.timedReservation.create({
+            data: { parkingSpotId: spot.id, date: DATE, startMinute, endMinute, guestName: 'Host' },
+          });
+        };
+
+        const attempts = [insertBlock(540, 630), insertBlock(600, 660)];
+        started.resolve();
+        const outcomes = await Promise.allSettled(attempts);
+
+        const successes = outcomes.filter((outcome) => outcome.status === 'fulfilled');
+        const failures = outcomes.filter((outcome) => outcome.status === 'rejected');
+        expect(successes.length).toBe(1);
+        expect(failures.length).toBe(1);
+
+        const error = (failures[0] as PromiseRejectedResult).reason as unknown;
+        expect(error).toBeInstanceOf(Prisma.PrismaClientKnownRequestError);
+        const known = error as Prisma.PrismaClientKnownRequestError;
+        expect(mapPrismaErrorCode(known)).toBe('SPOT_ALREADY_RESERVED');
+        expect(isTimedReservationConflict(known)).toBe(true);
+      } finally {
+        await prisma.timedReservation.deleteMany({ where: { parkingSpotId: spot.id } });
+        await prisma.parkingSpot.delete({ where: { id: spot.id } });
+      }
+    });
+
+    it('a block vs. a full-day reservation, concurrently: exactly one commits, the loser is SPOT_ALREADY_RESERVED', async () => {
+      const spot = await prisma.parkingSpot.create({
+        data: { label: unique('SPOT'), group: 'IT' },
+      });
+      const user = await prisma.user.create({
+        data: {
+          email: `${unique('user')}@example.test`,
+          name: 'Database contract fixture',
+          oktaId: unique('okta'),
+          icsToken: unique('ics'),
+        },
+      });
+      try {
+        const started = resolvable();
+        const insertBlock = async () => {
+          await started.promise;
+          return prisma.timedReservation.create({
+            data: {
+              parkingSpotId: spot.id,
+              date: DATE,
+              startMinute: 540,
+              endMinute: 600,
+              guestName: 'Host',
+            },
+          });
+        };
+        const insertReservation = async () => {
+          await started.promise;
+          return prisma.reservation.create({
+            data: { parkingSpotId: spot.id, userId: user.id, date: DATE },
+          });
+        };
+
+        const attempts = [insertBlock(), insertReservation()];
+        started.resolve();
+        const outcomes = await Promise.allSettled(attempts);
+
+        const successes = outcomes.filter((outcome) => outcome.status === 'fulfilled');
+        const failures = outcomes.filter((outcome) => outcome.status === 'rejected');
+        expect(successes.length).toBe(1);
+        expect(failures.length).toBe(1);
+
+        const error = (failures[0] as PromiseRejectedResult).reason as unknown;
+        expect(error).toBeInstanceOf(Prisma.PrismaClientKnownRequestError);
+        const known = error as Prisma.PrismaClientKnownRequestError;
+        expect(mapPrismaErrorCode(known)).toBe('SPOT_ALREADY_RESERVED');
+      } finally {
+        await prisma.timedReservation.deleteMany({ where: { parkingSpotId: spot.id } });
+        await prisma.reservation.deleteMany({ where: { parkingSpotId: spot.id } });
+        await prisma.parkingSpot.delete({ where: { id: spot.id } });
+        await prisma.user.delete({ where: { id: user.id } });
+      }
+    });
+
+    it('isTimedReservationConflict is true for the two triggers and false for the plain Reservation collision', async () => {
+      const timedBlockError = await rejectedBy(prisma, async (tx) => {
+        const spot = await seedSpot(tx);
+        await block(tx, spot.id, 540, 630);
+        return block(tx, spot.id, 600, 660);
+      });
+      const fullDayThenBlockError = await rejectedBy(prisma, async (tx) => {
+        const [spot, user] = [await seedSpot(tx), await seedUser(tx)];
+        await tx.reservation.create({
+          data: { parkingSpotId: spot.id, userId: user.id, date: DATE },
+        });
+        return block(tx, spot.id, 600, 660);
+      });
+      const blockThenFullDayError = await rejectedBy(prisma, async (tx) => {
+        const [spot, user] = [await seedSpot(tx), await seedUser(tx)];
+        await block(tx, spot.id, 600, 660);
+        return tx.reservation.create({
+          data: { parkingSpotId: spot.id, userId: user.id, date: DATE },
+        });
+      });
+      const plainReservationCollision = await rejectedBy(prisma, async (tx) => {
+        const spot = await seedSpot(tx);
+        const [one, two] = [await seedUser(tx), await seedUser(tx)];
+        await tx.reservation.create({
+          data: { parkingSpotId: spot.id, userId: one.id, date: DATE },
+        });
+        return tx.reservation.create({
+          data: { parkingSpotId: spot.id, userId: two.id, date: DATE },
+        });
+      });
+
+      expect(isTimedReservationConflict(timedBlockError)).toBe(true);
+      expect(isTimedReservationConflict(fullDayThenBlockError)).toBe(true);
+      expect(isTimedReservationConflict(blockThenFullDayError)).toBe(true);
+      expect(isTimedReservationConflict(plainReservationCollision)).toBe(false);
     });
   });
 });

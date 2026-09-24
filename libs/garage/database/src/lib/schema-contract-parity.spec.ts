@@ -25,6 +25,7 @@ import type {
   AuditLog as ContractAuditLog,
   ParkingSpot as ContractParkingSpot,
   Reservation as ContractReservation,
+  TimedReservation as ContractTimedReservation,
   User as ContractUser,
   WaitlistEntry as ContractWaitlistEntry,
 } from '@garage/contract';
@@ -35,6 +36,7 @@ import {
   reservationLimitSettingsSchema,
   reservationSchema,
   reservationWindowSettingsSchema,
+  timedReservationSchema,
   userSchema,
   waitlistEntrySchema,
 } from '@garage/contract';
@@ -43,6 +45,7 @@ import type {
   AuditLog as PrismaAuditLog,
   ParkingSpot as PrismaParkingSpot,
   Reservation as PrismaReservation,
+  TimedReservation as PrismaTimedReservation,
   User as PrismaUser,
   WaitlistEntry as PrismaWaitlistEntry,
 } from '../generated/prisma/client';
@@ -84,7 +87,17 @@ const nullabilityMatches: [
       NullableKeys<Omit<ContractAuditLog, 'payload'>>
     >
   >,
-] = [true, true, true, true, true];
+  // `startTime`/`endTime` are excluded on the contract side and
+  // `startMinute`/`endMinute` on the storage side: neither is nullable on
+  // either side, but they are different field names for the same value (see
+  // the field-name test below), and `NullableKeys` compares by name.
+  Expect<
+    Equal<
+      NullableKeys<Omit<PrismaTimedReservation, 'startMinute' | 'endMinute'>>,
+      NullableKeys<Omit<ContractTimedReservation, 'startTime' | 'endTime'>>
+    >
+  >,
+] = [true, true, true, true, true, true];
 
 // --- runtime parity ---------------------------------------------------------
 
@@ -119,7 +132,20 @@ describe('Prisma models mirror the contract entities', () => {
 
   it('the nullable columns are the ones the contract marks nullable', () => {
     // Enforced by `tsc`; asserted here so the check is visible in the run.
-    expect(nullabilityMatches).toEqual([true, true, true, true, true]);
+    expect(nullabilityMatches).toEqual([true, true, true, true, true, true]);
+  });
+
+  it('TimedReservation stores the contract fields, minutes where the contract stores HH:MM', () => {
+    // Not the generic `%s stores exactly the contract fields` check above:
+    // storage uses `startMinute`/`endMinute` (`Int`) where the contract uses
+    // `startTime`/`endTime` (`HH:MM` strings) — see `doc/database.md`
+    // (§"Where storage differs from the contract"). Every other field name is
+    // identical.
+    const TIME_FIELDS: Record<string, string> = { startTime: 'startMinute', endTime: 'endMinute' };
+    const contractFields = Object.keys(timedReservationSchema.shape)
+      .map((field) => TIME_FIELDS[field] ?? field)
+      .sort();
+    expect(Object.keys(Prisma.TimedReservationScalarFieldEnum).sort()).toEqual(contractFields);
   });
 
   it('ReservationWindowSettings adds only storage-local columns', () => {
@@ -146,6 +172,7 @@ describe('Prisma models mirror the contract entities', () => {
       'Reservation',
       'ReservationLimitSettings',
       'ReservationWindowSettings',
+      'TimedReservation',
       'User',
       'WaitlistEntry',
     ]);
@@ -179,5 +206,18 @@ describe('storage types that are deliberately not the wire types', () => {
       Expect<Equal<ContractUser['createdAt'], string>>,
     ] = [true, true];
     expect(timestamps).toEqual([true, true]);
+  });
+
+  it('a timed block is minutes-since-midnight in storage and HH:MM strings on the wire', () => {
+    // Task 3 owns the conversion (`timeOfDayToMinutes`/`minutesToTimeOfDay`,
+    // `@garage/shared-types`). The column being `SMALLINT`, not `TEXT`, is
+    // asserted in `migration-sql.spec.ts`.
+    const storage: [
+      Expect<Equal<PrismaTimedReservation['startMinute'], number>>,
+      Expect<Equal<PrismaTimedReservation['endMinute'], number>>,
+      Expect<Equal<ContractTimedReservation['startTime'], string>>,
+      Expect<Equal<ContractTimedReservation['endTime'], string>>,
+    ] = [true, true, true, true];
+    expect(storage).toEqual([true, true, true, true]);
   });
 });

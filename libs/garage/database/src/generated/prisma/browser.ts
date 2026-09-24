@@ -47,6 +47,25 @@ export type ParkingSpot = Prisma.ParkingSpotModel
  */
 export type Reservation = Prisma.ReservationModel
 /**
+ * Model TimedReservation
+ * A guest booked into a half-hour-granular block of one day, on one spot.
+ * 
+ * A separate model from `Reservation`, not a variant of it: a timed block is
+ * always for a guest (no `userId`) and a spot may hold many of them on one
+ * day, whereas `Reservation` is one-per-spot-per-day. Storage is minutes
+ * since local midnight (`[startMinute, endMinute)`, half-open, multiples of
+ * 30, `endMinute` up to `1440`), not the contract's `HH:MM` strings — see
+ * `doc/database.md` (§"Where storage differs from the contract").
+ * 
+ * One (spot, day) is either one full-day `Reservation` or any number of
+ * non-overlapping `TimedReservation` blocks, never both. Prisma's schema
+ * language cannot express that exclusivity rule or the half-open-range
+ * `CHECK`, so both live in the migration as hand-written SQL: a `CHECK` on
+ * this table and a pair of triggers spanning both tables. See
+ * `doc/decision/0314-*`.
+ */
+export type TimedReservation = Prisma.TimedReservationModel
+/**
  * Model WaitlistEntry
  * A user waiting for an already-booked spot on a given day. Queue order is
  * `createdAt`, with `id` as the tiebreaker.

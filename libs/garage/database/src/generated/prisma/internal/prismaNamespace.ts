@@ -400,6 +400,7 @@ export const ModelName = {
   User: 'User',
   ParkingSpot: 'ParkingSpot',
   Reservation: 'Reservation',
+  TimedReservation: 'TimedReservation',
   WaitlistEntry: 'WaitlistEntry',
   AuditLog: 'AuditLog',
   ReservationWindowSettings: 'ReservationWindowSettings',
@@ -419,7 +420,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "parkingSpot" | "reservation" | "waitlistEntry" | "auditLog" | "reservationWindowSettings" | "reservationLimitSettings"
+    modelProps: "user" | "parkingSpot" | "reservation" | "timedReservation" | "waitlistEntry" | "auditLog" | "reservationWindowSettings" | "reservationLimitSettings"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -642,6 +643,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.ReservationCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.ReservationCountAggregateOutputType> | number
+        }
+      }
+    }
+    TimedReservation: {
+      payload: Prisma.$TimedReservationPayload<ExtArgs>
+      fields: Prisma.TimedReservationFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.TimedReservationFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TimedReservationPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.TimedReservationFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TimedReservationPayload>
+        }
+        findFirst: {
+          args: Prisma.TimedReservationFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TimedReservationPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.TimedReservationFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TimedReservationPayload>
+        }
+        findMany: {
+          args: Prisma.TimedReservationFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TimedReservationPayload>[]
+        }
+        create: {
+          args: Prisma.TimedReservationCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TimedReservationPayload>
+        }
+        createMany: {
+          args: Prisma.TimedReservationCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.TimedReservationCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TimedReservationPayload>[]
+        }
+        delete: {
+          args: Prisma.TimedReservationDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TimedReservationPayload>
+        }
+        update: {
+          args: Prisma.TimedReservationUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TimedReservationPayload>
+        }
+        deleteMany: {
+          args: Prisma.TimedReservationDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.TimedReservationUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.TimedReservationUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TimedReservationPayload>[]
+        }
+        upsert: {
+          args: Prisma.TimedReservationUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TimedReservationPayload>
+        }
+        aggregate: {
+          args: Prisma.TimedReservationAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateTimedReservation>
+        }
+        groupBy: {
+          args: Prisma.TimedReservationGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TimedReservationGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.TimedReservationCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TimedReservationCountAggregateOutputType> | number
         }
       }
     }
@@ -1022,6 +1097,20 @@ export const ReservationScalarFieldEnum = {
 export type ReservationScalarFieldEnum = (typeof ReservationScalarFieldEnum)[keyof typeof ReservationScalarFieldEnum]
 
 
+export const TimedReservationScalarFieldEnum = {
+  id: 'id',
+  parkingSpotId: 'parkingSpotId',
+  date: 'date',
+  startMinute: 'startMinute',
+  endMinute: 'endMinute',
+  guestName: 'guestName',
+  licensePlate: 'licensePlate',
+  createdAt: 'createdAt'
+} as const
+
+export type TimedReservationScalarFieldEnum = (typeof TimedReservationScalarFieldEnum)[keyof typeof TimedReservationScalarFieldEnum]
+
+
 export const WaitlistEntryScalarFieldEnum = {
   id: 'id',
   parkingSpotId: 'parkingSpotId',
@@ -1175,6 +1264,20 @@ export type ListEnumParkingGroupFieldRefInput<$PrismaModel> = FieldRefInputType<
 
 
 /**
+ * Reference to a field of type 'Int'
+ */
+export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
+    
+
+
+/**
+ * Reference to a field of type 'Int[]'
+ */
+export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
+    
+
+
+/**
  * Reference to a field of type 'AuditLogAction'
  */
 export type EnumAuditLogActionFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AuditLogAction'>
@@ -1199,20 +1302,6 @@ export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'J
  * Reference to a field of type 'QueryMode'
  */
 export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
-    
-
-
-/**
- * Reference to a field of type 'Int'
- */
-export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
-    
-
-
-/**
- * Reference to a field of type 'Int[]'
- */
-export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
     
 
 
@@ -1397,6 +1486,7 @@ export type GlobalOmitConfig = {
   user?: Prisma.UserOmit
   parkingSpot?: Prisma.ParkingSpotOmit
   reservation?: Prisma.ReservationOmit
+  timedReservation?: Prisma.TimedReservationOmit
   waitlistEntry?: Prisma.WaitlistEntryOmit
   auditLog?: Prisma.AuditLogOmit
   reservationWindowSettings?: Prisma.ReservationWindowSettingsOmit

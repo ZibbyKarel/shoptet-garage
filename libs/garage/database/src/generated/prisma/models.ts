@@ -11,6 +11,7 @@
 export type * from './models/User'
 export type * from './models/ParkingSpot'
 export type * from './models/Reservation'
+export type * from './models/TimedReservation'
 export type * from './models/WaitlistEntry'
 export type * from './models/AuditLog'
 export type * from './models/ReservationWindowSettings'

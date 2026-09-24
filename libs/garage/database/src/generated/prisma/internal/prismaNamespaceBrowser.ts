@@ -54,6 +54,7 @@ export const ModelName = {
   User: 'User',
   ParkingSpot: 'ParkingSpot',
   Reservation: 'Reservation',
+  TimedReservation: 'TimedReservation',
   WaitlistEntry: 'WaitlistEntry',
   AuditLog: 'AuditLog',
   ReservationWindowSettings: 'ReservationWindowSettings',
@@ -116,6 +117,20 @@ export const ReservationScalarFieldEnum = {
 } as const
 
 export type ReservationScalarFieldEnum = (typeof ReservationScalarFieldEnum)[keyof typeof ReservationScalarFieldEnum]
+
+
+export const TimedReservationScalarFieldEnum = {
+  id: 'id',
+  parkingSpotId: 'parkingSpotId',
+  date: 'date',
+  startMinute: 'startMinute',
+  endMinute: 'endMinute',
+  guestName: 'guestName',
+  licensePlate: 'licensePlate',
+  createdAt: 'createdAt'
+} as const
+
+export type TimedReservationScalarFieldEnum = (typeof TimedReservationScalarFieldEnum)[keyof typeof TimedReservationScalarFieldEnum]
 
 
 export const WaitlistEntryScalarFieldEnum = {
