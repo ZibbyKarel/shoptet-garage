@@ -280,6 +280,47 @@ describe('the realtime gateway', () => {
       ).toHaveLength(0);
     });
 
+    it("refuses a normal user's cell:lock on a hidden spot, but still lets an admin take it", async () => {
+      const user = await connectAs(alice);
+      const admin = await connectAs(carol);
+      const cell = await hiddenCell();
+
+      // No ack at all — the same silent drop as an invalid payload, so the
+      // caller learns nothing: not that the spot exists, and not who holds
+      // it.
+      await expect(user.emitWithAck('cell:lock', cell, 400)).rejects.toThrow(/No acknowledgement/);
+      expect(user.received.filter((event) => event.name === 'cell:locked')).toHaveLength(0);
+
+      // The refusal did not take the lock: an admin can still acquire it.
+      await expect(admin.emitWithAck('cell:lock', cell)).resolves.toMatchObject({
+        result: 'ACQUIRED',
+      });
+    });
+
+    it('broadcasts its unlock to admins in the room and to nobody else', async () => {
+      const editor = await connectAs(carol);
+      const otherAdmin = await connectAs(dave);
+      const user = await connectAs(alice);
+      await watch(otherAdmin, DAY);
+      await watch(user, DAY);
+      const cell = await hiddenCell();
+
+      await editor.emitWithAck('cell:lock', cell);
+      editor.emit('cell:unlock', cell);
+
+      await otherAdmin.waitForEvent(
+        'cell:unlocked',
+        (p: { parkingSpotId: string }) => p.parkingSpotId === cell.parkingSpotId
+      );
+      await settle();
+      expect(
+        user.received.filter(
+          (event) =>
+            (event.payload as { parkingSpotId?: string }).parkingSpotId === cell.parkingSpotId
+        )
+      ).toHaveLength(0);
+    });
+
     it('still reaches everybody once it is unhidden', async () => {
       const user = await connectAs(alice);
       await watch(user, DAY);

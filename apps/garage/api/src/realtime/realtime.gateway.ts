@@ -305,6 +305,14 @@ export class RealtimeGateway
    * form. A *second tab* of the same user is a different socket and does hear
    * it, which is correct: from that tab's point of view somebody else has the
    * cell.
+   *
+   * A non-admin locking a **hidden** spot is refused the same way an invalid
+   * payload is: dropped, with no acknowledgement and no `cell:locked`
+   * broadcast (`doc/decision/0316-*`). Not `HELD_BY_OTHER` — that would name
+   * an admin holder to a caller who is not supposed to know the spot exists
+   * at all — and there is no `NOT_FOUND` variant in `cellLockAckSchema` to
+   * answer with instead, so silence is the plainest refusal on hand that
+   * names nobody.
    */
   @SubscribeMessage('cell:lock')
   cellLock(
@@ -313,6 +321,9 @@ export class RealtimeGateway
   ): CellLockAck | undefined {
     const cell = this.accept('cell:lock', raw);
     if (cell === null) {
+      return undefined;
+    }
+    if (client.data.role !== 'ADMIN' && this.spots.isHidden(cell.parkingSpotId)) {
       return undefined;
     }
 
