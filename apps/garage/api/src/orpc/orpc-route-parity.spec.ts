@@ -50,6 +50,7 @@ import { BulkReservationController } from '../reservations/bulk-reservation.cont
 import { ReservationsController } from '../reservations/reservations.controller';
 import { WaitlistController } from '../reservations/waitlist.controller';
 import { SpotsController } from '../spots/spots.controller';
+import { TimedReservationsController } from '../timed-reservations/timed-reservations.controller';
 import { UsersController } from '../users/users.controller';
 import { RPC_ROUTE_PREFIX } from './rpc-route';
 
@@ -75,6 +76,7 @@ const CONTROLLERS = [
   ReservationsController,
   WaitlistController,
   BulkReservationController,
+  TimedReservationsController,
 ];
 
 interface RegisteredRoute {

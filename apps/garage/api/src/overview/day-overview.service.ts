@@ -30,7 +30,11 @@ import type {
 import type { DateOnly } from '@garage/shared-types';
 import { compareDateOnly, isBusinessDay, isMonthOpen, todayInPrague } from '@garage/shared-types';
 import type { AuthenticatedUser } from '../auth/authenticated-user';
-import { toDateColumn, toPublicReservation } from '../common/prisma-mapping';
+import {
+  toDateColumn,
+  toPublicReservation,
+  toPublicTimedReservation,
+} from '../common/prisma-mapping';
 import { PrismaService } from '../database/prisma.service';
 import { ReservationWindowService } from '../reservation-window/reservation-window.service';
 import { WAITLIST_ORDER } from '../reservations/waitlist-order';
@@ -51,7 +55,7 @@ export class DayOverviewService {
   ): Promise<DayOverviewOutput> {
     const dateColumn = toDateColumn(input.date);
 
-    const [spots, settings, reservations, waitlist] = await Promise.all([
+    const [spots, settings, reservations, waitlist, timedReservations] = await Promise.all([
       this.spots.listActive(),
       this.window.getSettings(),
       this.prisma.client.reservation.findMany({
@@ -63,6 +67,10 @@ export class DayOverviewService {
         orderBy: WAITLIST_ORDER,
         select: { id: true, parkingSpotId: true, userId: true },
       }),
+      this.prisma.client.timedReservation.findMany({
+        where: { date: dateColumn },
+        orderBy: { startMinute: 'asc' },
+      }),
     ]);
 
     const reservationBySpot = new Map(reservations.map((row) => [row.parkingSpotId, row]));
@@ -71,6 +79,12 @@ export class DayOverviewService {
       const queue = queueBySpot.get(entry.parkingSpotId) ?? [];
       queue.push({ id: entry.id, userId: entry.userId });
       queueBySpot.set(entry.parkingSpotId, queue);
+    }
+    const timedReservationsBySpot = new Map<string, typeof timedReservations>();
+    for (const row of timedReservations) {
+      const blocks = timedReservationsBySpot.get(row.parkingSpotId) ?? [];
+      blocks.push(row);
+      timedReservationsBySpot.set(row.parkingSpotId, blocks);
     }
 
     const spotOverviews: DaySpotOverview[] = spots.map((spot) => {
@@ -90,6 +104,9 @@ export class DayOverviewService {
         waitlistCount: queue.length,
         viewerWaitlistEntryId: viewerEntry?.id ?? null,
         viewerWaitlistPosition: viewerEntry === undefined ? null : viewerIndex + 1,
+        timedReservations: (timedReservationsBySpot.get(spot.id) ?? []).map(
+          toPublicTimedReservation
+        ),
       };
     });
 

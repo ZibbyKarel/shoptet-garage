@@ -37,7 +37,7 @@ import type {
   ReservationWindowSettings,
   UserRole,
 } from '@garage/contract';
-import type { DateOnly } from '@garage/shared-types';
+import type { DateOnly, TimeOfDay } from '@garage/shared-types';
 
 /**
  * The cell an entry is about.
@@ -127,4 +127,16 @@ export type AuditPayloads = PayloadMap<{
   SPOT_UPDATED: SpotUpdatedPayload;
   RESERVATION_WINDOW_UPDATED: Change<WindowFields>;
   RESERVATION_LIMITS_UPDATED: Change<LimitFields>;
+  /** An admin booked a guest-only half-hour block. */
+  TIMED_RESERVATION_CREATED: AuditCell & {
+    readonly startTime: TimeOfDay;
+    readonly endTime: TimeOfDay;
+    readonly guestName: string;
+  };
+  /** An admin removed a timed block. Mirrors `TIMED_RESERVATION_CREATED`. */
+  TIMED_RESERVATION_CANCELLED: AuditCell & {
+    readonly startTime: TimeOfDay;
+    readonly endTime: TimeOfDay;
+    readonly guestName: string;
+  };
 }>;

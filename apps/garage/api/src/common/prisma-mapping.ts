@@ -43,7 +43,9 @@ import type {
   AdminUser,
   ParkingSpot,
   PublicReservation,
+  PublicTimedReservation,
   Reservation,
+  TimedReservation,
   User,
   UserSummary,
   WaitlistEntry,
@@ -51,11 +53,13 @@ import type {
 import type {
   ParkingSpot as ParkingSpotRow,
   Reservation as ReservationRow,
+  TimedReservation as TimedReservationRow,
   User as UserRow,
   WaitlistEntry as WaitlistEntryRow,
   ReservationLimitSettings as ReservationLimitSettingsRow,
   ReservationWindowSettings as ReservationWindowSettingsRow,
 } from '@garage/database';
+import { minutesToTimeOfDay } from '@garage/shared-types';
 import type { DateOnly } from '@garage/shared-types';
 import { fromUtcMidnight, toUtcMidnight } from '@garage/shared-types';
 import type { ReservationLimitSettings, ReservationWindowSettings } from '@garage/contract';
@@ -203,6 +207,31 @@ export function toContractWaitlistEntry(row: WaitlistEntryRow): WaitlistEntry {
     date: toDateOnly(row.date),
     createdAt: toTimestamp(row.createdAt),
   };
+}
+
+/** A timed-reservation row, whole. What `admin.timedReservation.create` answers with. */
+export function toContractTimedReservation(row: TimedReservationRow): TimedReservation {
+  return {
+    id: row.id,
+    parkingSpotId: row.parkingSpotId,
+    date: toDateOnly(row.date),
+    startTime: minutesToTimeOfDay(row.startMinute),
+    endTime: minutesToTimeOfDay(row.endMinute),
+    guestName: row.guestName,
+    licensePlate: row.licensePlate,
+    createdAt: toTimestamp(row.createdAt),
+  };
+}
+
+/**
+ * A timed block as everybody who can see the day sees it: neither the spot nor
+ * the day, for the same reason {@link toPublicReservation}'s output carries
+ * neither — every caller already knows both from its surrounding context (the
+ * spot row of the day overview, the realtime event's `cellRef`).
+ */
+export function toPublicTimedReservation(row: TimedReservationRow): PublicTimedReservation {
+  const { parkingSpotId: _parkingSpotId, date: _date, ...rest } = toContractTimedReservation(row);
+  return rest;
 }
 
 /**

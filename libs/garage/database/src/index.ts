@@ -19,6 +19,7 @@ export type {
   Reservation,
   ReservationLimitSettings,
   ReservationWindowSettings,
+  TimedReservation,
   User,
   WaitlistEntry,
 } from './generated/prisma/client';

@@ -71,6 +71,33 @@ describe('DayOverviewService', () => {
     expect(result.spots[0]?.reservation).toBeNull();
   });
 
+  it('lists a spot’s guest blocks ascending by start time, and nothing for a spot with none', async () => {
+    const spot = double.seedSpot({ label: 'A1' });
+    double.seedSpot({ label: 'A2' });
+    double.seedTimedReservation({
+      parkingSpotId: spot.id,
+      date: TODAY,
+      startMinute: 630, // 10:30
+      endMinute: 660,
+      guestName: 'Later Guest',
+    });
+    double.seedTimedReservation({
+      parkingSpotId: spot.id,
+      date: TODAY,
+      startMinute: 540, // 09:00
+      endMinute: 600,
+      guestName: 'Earlier Guest',
+    });
+
+    const result = await overview.getDay({ date: TODAY }, authenticated('viewer'), TODAY);
+
+    expect(result.spots[0]?.timedReservations).toMatchObject([
+      { startTime: '09:00', endTime: '10:00', guestName: 'Earlier Guest' },
+      { startTime: '10:30', endTime: '11:00', guestName: 'Later Guest' },
+    ]);
+    expect(result.spots[1]?.timedReservations).toEqual([]);
+  });
+
   describe('the queue', () => {
     it('counts everybody waiting for a spot on that day', async () => {
       const spot = double.seedSpot({ label: 'A1' });

@@ -90,5 +90,12 @@ import { WaitlistService } from './waitlist.service';
     },
     { provide: DomainEventPublisher, useClass: CompositeDomainEventPublisher },
   ],
+  // `ReservationPolicy` and `DomainEventPublisher` are exported so that
+  // `TimedReservationsModule` (Task 4 of the guest-half-hour-blocks plan) can
+  // reuse this module's day-eligibility rule and its one after-commit
+  // publisher instance, instead of importing `RealtimeModule`/`SlackModule`
+  // itself and standing up a second `CompositeDomainEventPublisher` that would
+  // never reach either delegate.
+  exports: [ReservationPolicy, DomainEventPublisher],
 })
 export class ReservationsModule {}
