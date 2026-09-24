@@ -10,4 +10,4 @@
 
 5. [x] pokud je místo skryté, "Skryté" tag překrývá označení parkovacího místa na přehledu. Zkusíme tam zobrazit míst tahu podobně jako blesk pro nabíječku přeškrtnuté oko ale napravo (main@c943c64)
 
-6. [ ] při přidávání parkovacího místa musím mít možnost vyplnit zda má el. nabíječku či ne
+6. [x] při přidávání parkovacího místa musím mít možnost vyplnit zda má el. nabíječku či ne (main@7db2ac8)
