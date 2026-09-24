@@ -382,13 +382,13 @@ service layer, same as the window (ruling window-2).
 
 ### Spots
 
-| procedure               | input                                 | output        | other errors                                 |
-| ----------------------- | ------------------------------------- | ------------- | -------------------------------------------- |
-| `spot.list`             | —                                     | `{ spots[] }` | —                                            |
-| `admin.spot.list`       | `{ includeInactive = false, group? }` | `{ spots[] }` | —                                            |
-| `admin.spot.create`     | `{ label, group }`                    | `ParkingSpot` | `CONFLICT`, `VALIDATION_FAILED`              |
-| `admin.spot.update`     | `{ id, label?, group?, active? }`     | `ParkingSpot` | `NOT_FOUND`, `CONFLICT`, `VALIDATION_FAILED` |
-| `admin.spot.deactivate` | `{ id }`                              | `ParkingSpot` | `NOT_FOUND`, `CONFLICT`                      |
+| procedure               | input                                                  | output        | other errors                                 |
+| ----------------------- | ------------------------------------------------------ | ------------- | -------------------------------------------- |
+| `spot.list`             | —                                                      | `{ spots[] }` | —                                            |
+| `admin.spot.list`       | `{ includeInactive = false, group? }`                  | `{ spots[] }` | —                                            |
+| `admin.spot.create`     | `{ label, group, evCharger? }`                         | `ParkingSpot` | `CONFLICT`, `VALIDATION_FAILED`              |
+| `admin.spot.update`     | `{ id, label?, group?, active?, hidden?, evCharger? }` | `ParkingSpot` | `NOT_FOUND`, `CONFLICT`, `VALIDATION_FAILED` |
+| `admin.spot.deactivate` | `{ id }`                                               | `ParkingSpot` | `NOT_FOUND`, `CONFLICT`                      |
 
 `spot.list` exists for a regular user too, because the settings screen needs
 a picker for `preferredParkingSpotId`. It returns only active, non-hidden

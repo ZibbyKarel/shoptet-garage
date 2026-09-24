@@ -11,14 +11,18 @@
  */
 
 import { useMemo, useState } from 'react';
-import type { CreateSpotInput, ParkingGroup } from '@garage/contract';
+import type { CreateSpotInput } from '@garage/contract';
 import { useRequireAuth } from '@garage/auth/client';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { todayInPrague } from '@garage/i18n';
 import { useApi } from '../api-provider/api-provider';
 import { screenDataOf } from '../screen-state/screen-state';
 import type { AdminWrite, AdminWriteFailure } from './admin-errors';
-import { AdminSpotsScreen, type SpotToday } from './admin-spots-screen/admin-spots-screen';
+import {
+  AdminSpotsScreen,
+  type SaveSpotInput,
+  type SpotToday,
+} from './admin-spots-screen/admin-spots-screen';
 
 export function AdminSpotsPanel() {
   const api = useApi();
@@ -155,7 +159,7 @@ export function AdminSpotsPanel() {
         startWrite('spotCreate', null);
         await createSpot.mutateAsync(input);
       }}
-      onSave={async (input: { id: string; label: string; group: ParkingGroup }) => {
+      onSave={async (input: SaveSpotInput) => {
         startWrite('spotRename', input.id);
         await updateSpot.mutateAsync(input);
       }}

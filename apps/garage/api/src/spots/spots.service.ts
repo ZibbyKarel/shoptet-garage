@@ -115,7 +115,7 @@ export class SpotsService implements OnModuleInit {
    */
   async create(input: CreateSpotInput, actorUserId: string): Promise<ParkingSpot> {
     const row = await this.prisma.client.parkingSpot.create({
-      data: { label: input.label, group: input.group },
+      data: { label: input.label, group: input.group, evCharger: input.evCharger ?? false },
     });
 
     // The `payload` shape is fixed per action by `../audit/audit-payloads.ts`.
@@ -124,7 +124,7 @@ export class SpotsService implements OnModuleInit {
       action: 'SPOT_UPDATED',
       entityType: 'ParkingSpot',
       entityId: row.id,
-      payload: { change: 'created', label: row.label, group: row.group },
+      payload: { change: 'created', label: row.label, group: row.group, evCharger: row.evCharger },
     });
 
     return toContractSpot(row);

@@ -110,7 +110,8 @@ and `Smazat` (a `ConfirmDialog`).
   `doc/decision/0316-hidden-spots-are-seen-and-booked-by-admins-only`.
 - `Nabíječka` marks an EV charger. It is information only and refuses
   nothing. A spot with a charger carries a green bolt here and, for every
-  viewer, on the lot.
+  viewer, on the lot. It can be set when the spot is added and changed in
+  the edit dialog or the table.
   `doc/decision/0317-the-ev-charger-flag-is-informational-and-shown-to-everyone`.
 - The category band counts; it does not edit. Categories are a closed enum.
   `doc/decision/0164-*`.
