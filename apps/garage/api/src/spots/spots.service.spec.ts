@@ -186,6 +186,22 @@ describe('SpotsService', () => {
       expect(double.spots[0]?.active).toBe(true);
     });
 
+    it('refuses while a guest block sits on the spot today or later', async () => {
+      const spot = double.seedSpot({ label: 'A1' });
+      double.seedTimedReservation({
+        parkingSpotId: spot.id,
+        date: TODAY,
+        startMinute: 540,
+        endMinute: 600,
+      });
+
+      await expect(spots.deactivate({ id: spot.id }, 'admin-1')).rejects.toMatchObject({
+        code: 'CONFLICT',
+        details: { reservations: 0, waitlistEntries: 0, timedReservations: 1 },
+      });
+      expect(double.spots[0]?.active).toBe(true);
+    });
+
     it('ignores reservations and queue entries that are already in the past', async () => {
       const spot = double.seedSpot({ label: 'A1' });
       const user = double.seedUser();

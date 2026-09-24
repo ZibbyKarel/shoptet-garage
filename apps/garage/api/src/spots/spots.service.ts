@@ -190,21 +190,29 @@ export class SpotsService {
    * will ever free a spot nobody can reserve. `ON DELETE RESTRICT` explains why
    * the *row* survives a retirement; it says nothing about why the *queue*
    * should. See `doc/decision/0235-*`.
+   *
+   * **Guest half-hour blocks count too**, for the plainer reason: a guest is
+   * booked to park there on a named day, and retiring the spot out from under
+   * them is exactly the same mistake as retiring it out from under a full-day
+   * holder. `doc/decision/0314-*`.
    */
   private async requireNoFutureCommitments(spotId: string): Promise<void> {
     const from = toDateColumn(todayInPrague());
     const where = { parkingSpotId: spotId, date: { gte: from } };
-    // Two statements rather than one destructured array literal: the counts run
-    // one after the other, and the array shape read like `Promise.all` without
-    // being it. They are deliberately not parallelised — that would change how
-    // many pool connections a deactivation holds, for no gain at this size.
+    // Three statements rather than one destructured array literal: the counts
+    // run one after the other, and the array shape read like `Promise.all`
+    // without being it. They are deliberately not parallelised — that would
+    // change how many pool connections a deactivation holds, for no gain at
+    // this size.
     const reservations = await this.prisma.client.reservation.count({ where });
     const waitlistEntries = await this.prisma.client.waitlistEntry.count({ where });
+    const timedReservations = await this.prisma.client.timedReservation.count({ where });
 
-    if (reservations + waitlistEntries > 0) {
+    if (reservations + waitlistEntries + timedReservations > 0) {
       throw new DomainError('CONFLICT', {
-        message: 'The spot still has reservations or waitlist entries from today onwards.',
-        details: { reservations, waitlistEntries },
+        message:
+          'The spot still has reservations, guest blocks or waitlist entries from today onwards.',
+        details: { reservations, waitlistEntries, timedReservations },
       });
     }
   }

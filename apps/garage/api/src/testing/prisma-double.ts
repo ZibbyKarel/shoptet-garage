@@ -678,6 +678,20 @@ export class PrismaDouble {
         }
         return [...rows].sort((a, b) => a.startMinute - b.startMinute).map(copy);
       },
+      // `SpotsService.requireNoFutureCommitments`, which counts guest blocks
+      // from today onwards alongside reservations and waitlist entries. Same
+      // `date.gte` shape as the other two counts, and refused the same way if
+      // it is missing.
+      count: async (args: { where: { parkingSpotId: string; date: { gte: Date } } }) => {
+        const gte = args.where.date?.gte;
+        if (!(gte instanceof Date)) {
+          return unsupported('a timed reservation count without a `date.gte` bound', args.where);
+        }
+        return this.timedReservations.filter(
+          (row) =>
+            row.parkingSpotId === args.where.parkingSpotId && row.date.getTime() >= gte.getTime()
+        ).length;
+      },
     };
   }
 

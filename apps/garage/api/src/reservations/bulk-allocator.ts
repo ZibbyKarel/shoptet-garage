@@ -87,6 +87,12 @@ export interface DayState {
    * user ids. A spot with no queue may be absent.
    */
   queuedUserIdsBySpotId: ReadonlyMap<string, readonly string[]>;
+  /**
+   * Spots holding a guest block that day. Neither assignable nor queueable: a
+   * queue waits for a full-day holder to give the spot up, and a block has no
+   * full-day holder to wait on.
+   */
+  blockedSpotIds: ReadonlySet<string>;
 }
 
 export interface AllocationRequest {
@@ -107,6 +113,7 @@ const EMPTY_DAY: DayState = {
   reservedSpotIds: new Set(),
   userHasReservation: false,
   queuedUserIdsBySpotId: new Map(),
+  blockedSpotIds: new Set(),
 };
 
 /**
@@ -180,11 +187,12 @@ function planDay(
   if (day.userHasReservation) {
     return { outcome: 'UNAVAILABLE', date, reason: 'ALREADY_HAS_RESERVATION' };
   }
-  if (spots.length === 0) {
+  const candidates = spots.filter((spot) => !day.blockedSpotIds.has(spot.id));
+  if (candidates.length === 0) {
     return { outcome: 'UNAVAILABLE', date, reason: 'NO_SPOTS_AVAILABLE' };
   }
 
-  const free = spots.filter((spot) => !day.reservedSpotIds.has(spot.id));
+  const free = candidates.filter((spot) => !day.reservedSpotIds.has(spot.id));
   const preferred = free.find((spot) => spot.id === request.preferredParkingSpotId);
   const chosen = preferred ?? free[0];
 
@@ -198,10 +206,11 @@ function planDay(
     };
   }
 
-  // Every spot is taken. `spots` is non-empty and `shortestQueue` returns the
-  // first of them at worst, so this cannot be `undefined` — but the compiler
-  // cannot see that, and a thrown defect is better than a fabricated fallback.
-  const queueTarget = shortestQueue(spots, day);
+  // Every non-blocked spot is taken. `candidates` is non-empty and
+  // `shortestQueue` returns the first of them at worst, so this cannot be
+  // `undefined` — but the compiler cannot see that, and a thrown defect is
+  // better than a fabricated fallback.
+  const queueTarget = shortestQueue(candidates, day);
   if (queueTarget === undefined) {
     throw new Error('No spot to queue for, on a day that has spots.');
   }

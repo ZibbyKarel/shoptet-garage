@@ -72,6 +72,8 @@ const QUEUED_BEHIND_DAY = '2100-01-21' as DateOnly;
 const AFTER_COMMIT_DAY = '2100-01-22' as DateOnly;
 const CONTESTED_DAYS = ['2100-01-25', '2100-01-26'] as DateOnly[];
 const BUSY_ELSEWHERE_DAYS = ['2100-01-27', '2100-01-28'] as DateOnly[];
+/** A Friday four weeks after {@link HOLIDAY}, so also unaffected by it. */
+const GUEST_BLOCK_DAY = '2100-01-29' as DateOnly;
 /**
  * The same race against a day the allocator planned to **queue**.
  *
@@ -102,6 +104,7 @@ const BUSINESS_DAYS = [
   AFTER_COMMIT_DAY,
   ...CONTESTED_DAYS,
   ...BUSY_ELSEWHERE_DAYS,
+  GUEST_BLOCK_DAY,
 ];
 
 /** The March days, kept apart from {@link BUSINESS_DAYS}'s one-month guard. */
@@ -549,6 +552,40 @@ describe('bulk booking against a real PostgreSQL', () => {
       );
       expect(result.summary).toEqual(preview.summary);
       expect(result.summary.preferredSpotHits).toBe(2);
+    });
+
+    it('routes around a guest block on the preferred spot and still assigns the day', async () => {
+      const booker = await seedUser(client);
+      const preferred = await seedSpot(client);
+      await setPreferredSpot(client, booker.id, preferred.id);
+      await client.timedReservation.create({
+        data: {
+          parkingSpotId: preferred.id,
+          date: toDateColumn(GUEST_BLOCK_DAY),
+          startMinute: 540,
+          endMinute: 600,
+          guestName: 'Guest',
+        },
+      });
+
+      const result = await harness.bulk.confirm(
+        { dates: [GUEST_BLOCK_DAY] },
+        actorFor(booker),
+        TODAY
+      );
+
+      const [day] = result.days;
+      if (day?.outcome !== 'SPOT_ASSIGNED') {
+        throw new Error(`Expected ${GUEST_BLOCK_DAY} to be assigned, got ${day?.outcome}.`);
+      }
+      expect(day.parkingSpotId).not.toBe(preferred.id);
+      expect(day.isPreferredSpot).toBe(false);
+      expect(result.summary).toMatchObject({ assigned: 1, queued: 0, unavailable: 0 });
+
+      const stored = await client.reservation.findUniqueOrThrow({
+        where: { id: day.reservationId },
+      });
+      expect(stored.parkingSpotId).toBe(day.parkingSpotId);
     });
 
     it('skips a day the caller already holds a reservation on', async () => {

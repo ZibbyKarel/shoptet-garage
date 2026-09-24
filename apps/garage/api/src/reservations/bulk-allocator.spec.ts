@@ -53,6 +53,7 @@ function day(overrides: Partial<DayState> = {}): DayState {
     reservedSpotIds: new Set(),
     userHasReservation: false,
     queuedUserIdsBySpotId: new Map(),
+    blockedSpotIds: new Set(),
     ...overrides,
   };
 }
@@ -177,6 +178,60 @@ describe('the preferred spot', () => {
     expect(onlyPlan({ preferredParkingSpotId: 'retired-spot' })).toMatchObject({
       parkingSpotId: 'it-1',
       isPreferredSpot: false,
+    });
+  });
+});
+
+describe('a spot with a guest block that day', () => {
+  it('is skipped even when it is the preferred spot, in favour of the next free one', () => {
+    expect(
+      onlyPlan({
+        preferredParkingSpotId: 'it-1',
+        stateByDate: new Map([[MONDAY, day({ blockedSpotIds: new Set(['it-1']) })]]),
+      })
+    ).toEqual({
+      outcome: 'SPOT_ASSIGNED',
+      date: MONDAY,
+      parkingSpotId: 'it-2',
+      parkingSpotLabel: 'IT-2',
+      isPreferredSpot: false,
+    });
+  });
+
+  it('is never the target of a queue, even as the only free-looking spot', () => {
+    // Every other spot reserved, one spot blocked: the queue must land on a
+    // non-blocked, reserved spot rather than on the block — a queue waits for a
+    // full-day holder to cancel, and a block is not one. `it-1` is blocked and
+    // has no queue at all; without the fix it would win the shortest-queue
+    // tiebreak outright.
+    expect(
+      onlyPlan({
+        stateByDate: new Map([
+          [
+            MONDAY,
+            day({
+              reservedSpotIds: new Set(['it-2', 'shared-1', 'shared-2']),
+              blockedSpotIds: new Set(['it-1']),
+              queuedUserIdsBySpotId: new Map([['shared-1', ['a']]]),
+            }),
+          ],
+        ]),
+      })
+    ).toMatchObject({ outcome: 'QUEUED', parkingSpotId: 'it-2' });
+    // Whatever it picks among the non-blocked spots, it must never be `it-1`.
+  });
+
+  it('reports NO_SPOTS_AVAILABLE when every spot is blocked', () => {
+    expect(
+      onlyPlan({
+        stateByDate: new Map([
+          [MONDAY, day({ blockedSpotIds: new Set(SPOTS.map((spot) => spot.id)) })],
+        ]),
+      })
+    ).toEqual({
+      outcome: 'UNAVAILABLE',
+      date: MONDAY,
+      reason: 'NO_SPOTS_AVAILABLE',
     });
   });
 });
