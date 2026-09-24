@@ -261,6 +261,9 @@ const DAY_OVERVIEW = {
         } satisfies ReservationHolder,
       },
       waitlistCount: 0,
+      viewerWaitlistEntryId: null,
+      viewerWaitlistPosition: null,
+      timedReservations: [],
     },
   ],
 };

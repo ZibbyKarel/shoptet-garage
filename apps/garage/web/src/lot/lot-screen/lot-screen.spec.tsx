@@ -184,6 +184,7 @@ function freeSpot(overrides: Partial<DaySpotOverview> = {}): DaySpotOverview {
     waitlistCount: 0,
     viewerWaitlistEntryId: null,
     viewerWaitlistPosition: null,
+    timedReservations: [],
     ...overrides,
   };
 }
@@ -206,6 +207,7 @@ function takenSpot(overrides: Partial<DaySpotOverview> = {}): DaySpotOverview {
     waitlistCount: 0,
     viewerWaitlistEntryId: null,
     viewerWaitlistPosition: null,
+    timedReservations: [],
     ...overrides,
   };
 }
@@ -228,6 +230,7 @@ function mineSpot(overrides: Partial<DaySpotOverview> = {}): DaySpotOverview {
     waitlistCount: 0,
     viewerWaitlistEntryId: null,
     viewerWaitlistPosition: null,
+    timedReservations: [],
     ...overrides,
   };
 }

@@ -1,14 +1,16 @@
-import type { DayOverviewOutput, DaySpotOverview } from '@garage/contract';
+import type { DayOverviewOutput, DaySpotOverview, PublicTimedReservation } from '@garage/contract';
 import type {
   ReservationCancelledEvent,
   ReservationCreatedEvent,
   ReservationReassignedEvent,
+  TimedReservationsUpdatedEvent,
   WaitlistUpdatedEvent,
 } from '@garage/contract/realtime';
 import {
   applyReservationCancelled,
   applyReservationCreated,
   applyReservationReassigned,
+  applyTimedReservationsUpdated,
   applyWaitlistUpdated,
   reservationCancelledTouchesViewer,
   reservationCreatedTouchesViewer,
@@ -35,6 +37,7 @@ function row(id: string, overrides: Partial<DaySpotOverview> = {}): DaySpotOverv
     waitlistCount: 0,
     viewerWaitlistEntryId: null,
     viewerWaitlistPosition: null,
+    timedReservations: [],
     ...overrides,
   };
 }
@@ -207,6 +210,43 @@ describe('applyWaitlistUpdated', () => {
   it('ignores an event for a different day, by reference', () => {
     const before = day();
     expect(applyWaitlistUpdated(before, { ...event, date: OTHER_DATE })).toBe(before);
+  });
+});
+
+function publicTimedReservation(
+  overrides: Partial<PublicTimedReservation> = {}
+): PublicTimedReservation {
+  return {
+    id: 'timed-1',
+    startTime: '09:00',
+    endTime: '10:30',
+    guestName: 'Jan Host',
+    licensePlate: null,
+    createdAt: '2026-09-01T08:00:00.000Z',
+    ...overrides,
+  };
+}
+
+describe('applyTimedReservationsUpdated', () => {
+  const blocks = [publicTimedReservation()];
+  const event: TimedReservationsUpdatedEvent = {
+    date: DATE,
+    parkingSpotId: 'spot-a',
+    timedReservations: blocks,
+  };
+
+  it('replaces the cell’s guest blocks and leaves every other spot untouched', () => {
+    const before = day({
+      spots: [row('spot-a', { timedReservations: [] }), row('spot-b', { waitlistCount: 2 })],
+    });
+    const next = applyTimedReservationsUpdated(before, event);
+    expect(next.spots[0]?.timedReservations).toEqual(blocks);
+    expect(next.spots[1]).toBe(before.spots[1]);
+  });
+
+  it('ignores an event for a different day, by reference', () => {
+    const before = day();
+    expect(applyTimedReservationsUpdated(before, { ...event, date: OTHER_DATE })).toBe(before);
   });
 });
 

@@ -1,11 +1,13 @@
 import type { AdminUser, DaySpotOverview, MonthWindowOverview } from '@garage/contract';
 import { CAR_COLOR_PALETTE } from '@garage/design-system/tokens';
 import { createDateFormatters } from '@garage/i18n';
+import type { PublicTimedReservation } from '@garage/contract';
 import {
   CAR_COLOR_VARS,
   GUEST_CAR_COLOR_VAR,
   carColorVar,
   carColorIndex,
+  formatTimeRange,
   toBannerView,
   toDayNoteView,
   toGroupViews,
@@ -34,6 +36,19 @@ function spotRow(overrides: Partial<DaySpotOverview> = {}): DaySpotOverview {
     waitlistCount: 0,
     viewerWaitlistEntryId: null,
     viewerWaitlistPosition: null,
+    timedReservations: [],
+    ...overrides,
+  };
+}
+
+function timedBlock(overrides: Partial<PublicTimedReservation> = {}): PublicTimedReservation {
+  return {
+    id: 'timed-1',
+    startTime: '09:00',
+    endTime: '10:30',
+    guestName: 'Jan Host',
+    licensePlate: null,
+    createdAt: '2026-08-02T09:00:00.000Z',
     ...overrides,
   };
 }
@@ -258,6 +273,50 @@ describe('toSpotView', () => {
   });
 });
 
+describe('toSpotView — guest time blocks', () => {
+  const blocks = [
+    timedBlock({ id: 'timed-1', startTime: '09:00', endTime: '10:30' }),
+    timedBlock({ id: 'timed-2', startTime: '13:00', endTime: '14:00' }),
+  ];
+
+  it('draws a spot with guest blocks and no full-day holder as timed', () => {
+    const view = toSpotView(spotRow({ timedReservations: blocks }), context());
+    expect(view.appearance).toBe('timed');
+    expect(view.timedBlocks).toEqual(blocks);
+    expect(view.holderName).toBeNull();
+  });
+
+  it('offers reserving a timed spot only to an admin who can reserve', () => {
+    const row = spotRow({ timedReservations: blocks });
+
+    expect(toSpotView(row, context({ isAdmin: true, canReserve: true })).action).toBe('reserve');
+    expect(toSpotView(row, context({ isAdmin: false, canReserve: true })).action).toBe('info');
+    expect(toSpotView(row, context({ isAdmin: false, canReserve: true })).infoReason).toBe('timed');
+    expect(toSpotView(row, context({ isAdmin: true, canReserve: false })).action).toBe('info');
+    expect(toSpotView(row, context({ isAdmin: true, canReserve: false })).infoReason).toBe(
+      'window-locked'
+    );
+  });
+
+  it('lets a cell lock win over guest blocks too', () => {
+    const view = toSpotView(
+      spotRow({ timedReservations: blocks }),
+      context({ locks: lock(OTHER) })
+    );
+    expect(view.appearance).toBe('editing');
+  });
+});
+
+describe('formatTimeRange', () => {
+  it('strips a leading zero off the hour and joins with an en dash', () => {
+    expect(formatTimeRange({ startTime: '09:00', endTime: '10:30' })).toBe('9:00–10:30');
+  });
+
+  it('leaves a two-digit hour, including midnight, alone', () => {
+    expect(formatTimeRange({ startTime: '23:30', endTime: '24:00' })).toBe('23:30–24:00');
+  });
+});
+
 describe('toGroupViews', () => {
   function rowIn(group: 'IT' | 'SHARED', id: string, overrides: Partial<DaySpotOverview> = {}) {
     return spotRow({
@@ -299,6 +358,15 @@ describe('toGroupViews', () => {
     );
     expect(groups[0]?.freeCount).toBe(2);
   });
+
+  it('does not count a timed spot as free', () => {
+    const groups = toGroupViews(
+      [rowIn('IT', 'i1', { timedReservations: [timedBlock()] }), rowIn('IT', 'i2')],
+      context()
+    );
+    expect(groups[0]?.freeCount).toBe(1);
+    expect(groups[0]?.totalCount).toBe(2);
+  });
 });
 
 describe('toLotCounts', () => {
@@ -309,6 +377,14 @@ describe('toLotCounts', () => {
       spotRow({ spot: { ...spotRow().spot, id: 'c' } }),
     ];
     expect(toLotCounts(rows)).toEqual({ free: 2, taken: 1 });
+  });
+
+  it('counts a spot with guest blocks and no full-day holder as taken', () => {
+    const rows = [
+      spotRow({ spot: { ...spotRow().spot, id: 'a' }, timedReservations: [timedBlock()] }),
+      spotRow({ spot: { ...spotRow().spot, id: 'b' } }),
+    ];
+    expect(toLotCounts(rows)).toEqual({ free: 1, taken: 1 });
   });
 
   it('is zero for an empty lot', () => {

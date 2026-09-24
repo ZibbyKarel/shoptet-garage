@@ -25,6 +25,7 @@ function aSpotRow(
     waitlistCount: 0,
     viewerWaitlistEntryId: null,
     viewerWaitlistPosition: null,
+    timedReservations: [],
     ...rest,
   };
 }

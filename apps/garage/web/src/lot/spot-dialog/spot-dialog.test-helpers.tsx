@@ -29,6 +29,7 @@ export function spot(overrides: Partial<SpotView> = {}): SpotView {
     showAdminMenu: false,
     holderIsGuest: false,
     infoReason: null,
+    timedBlocks: [],
     ...overrides,
   };
 }
