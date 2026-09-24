@@ -43,7 +43,13 @@
  */
 
 import { useState } from 'react';
-import type { CreateSpotInput, ParkingGroup, ParkingSpot, SpotListOutput } from '@garage/contract';
+import type {
+  CreateSpotInput,
+  ParkingGroup,
+  ParkingSpot,
+  SpotListOutput,
+  UpdateSpotInput,
+} from '@garage/contract';
 import {
   Badge,
   BoltIcon,
@@ -77,6 +83,10 @@ export interface SpotToday {
   readonly holderIsGuest: boolean;
 }
 
+/** A label/group/EV charger edit: `id`, `label` and `group` required, `evCharger` optional. */
+export type SaveSpotInput = Pick<UpdateSpotInput, 'id' | 'evCharger'> &
+  Required<Pick<UpdateSpotInput, 'label' | 'group'>>;
+
 export interface AdminSpotsScreenProps {
   readonly onRetry: () => void;
   /** The spot list as one state. Inactive spots included. */
@@ -90,12 +100,7 @@ export interface AdminSpotsScreenProps {
   /** Resolves when the spot exists; rejects to keep the dialog open. */
   readonly onCreate: (input: CreateSpotInput) => Promise<void>;
   /** Same contract, for a label/group/EV charger edit. */
-  readonly onSave: (input: {
-    id: string;
-    label: string;
-    group: ParkingGroup;
-    evCharger?: boolean;
-  }) => Promise<void>;
+  readonly onSave: (input: SaveSpotInput) => Promise<void>;
   /** Inline activity switch. Fire-and-forget: the row reports through `rowError`. */
   readonly onActiveChange: (id: string, active: boolean) => void;
   /** Inline "Skryté" switch. Fire-and-forget, like `onActiveChange`. */

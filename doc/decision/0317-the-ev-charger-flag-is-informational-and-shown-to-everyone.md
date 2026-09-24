@@ -7,7 +7,10 @@
 `ParkingSpot.evCharger` (default `false`) marks a spot as having a charger
 for electric cars. It is set through `admin.spot.update({ id, evCharger })` —
 the same mutation that sets `hidden` and the plain fields — and audited as
-`SPOT_UPDATED` with `evCharger` in the before/after snapshot.
+`SPOT_UPDATED` with `evCharger` in the before/after snapshot. It can also be
+set at creation, via `admin.spot.create({ label, group, evCharger? })` —
+omitted, the new spot has no charger — and the `created` audit payload
+carries it.
 
 Unlike `hidden`, the flag carries no access rule at all: `parkingSpotSchema`
 includes it for every spot the reader can see (`spot.list`, `overview.day`, the
