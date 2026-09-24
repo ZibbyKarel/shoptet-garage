@@ -538,40 +538,115 @@ describe('what PostgreSQL actually does', () => {
       expect(String(error)).toContain('TimedReservation_range_check');
     });
 
+    it('rejects an end past midnight', async () => {
+      const error = await rejectedBy(prisma, async (tx) => {
+        const spot = await seedSpot(tx);
+        return block(tx, spot.id, 1410, 1470);
+      });
+      expect(String(error)).toContain('TimedReservation_range_check');
+    });
+
+    /**
+     * Polls `pg_locks` for an advisory lock that is requested but not yet
+     * granted — proof that a second session is actually parked inside
+     * `lock_spot_day`, not just that two `await`s happened to run close
+     * together.
+     *
+     * The first draft of the two concurrency cases below started both sides
+     * as autocommit `create`s gated by one shared `resolve()`. That never
+     * forced a real overlap: whichever statement's round trip to Postgres
+     * happened to land first would run its trigger, `INSERT` and commit
+     * before the second one's trigger even started, so the two statements
+     * serialised themselves through ordinary visibility — the assertions
+     * passed the same way whether or not `lock_spot_day` existed. Holding the
+     * first side open in an interactive transaction and waiting for this
+     * function to see the second side queued on the lock is what makes the
+     * overlap real.
+     */
+    async function advisoryLockIsBlocked(): Promise<boolean> {
+      const rows = await prisma.$queryRaw<{ count: number }[]>`
+        SELECT count(*)::int AS count FROM pg_locks WHERE locktype = 'advisory' AND NOT granted
+      `;
+      return (rows[0]?.count ?? 0) > 0;
+    }
+
+    async function waitUntilAdvisoryLockIsBlocked(timeoutMs = 5000): Promise<boolean> {
+      const deadline = Date.now() + timeoutMs;
+      while (Date.now() < deadline) {
+        if (await advisoryLockIsBlocked()) {
+          return true;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      }
+      return false;
+    }
+
     it('concurrent overlapping blocks: exactly one commits, the loser is SPOT_ALREADY_RESERVED', async () => {
       const spot = await prisma.parkingSpot.create({
         data: { label: unique('SPOT'), group: 'IT' },
       });
       try {
-        const started = resolvable();
-        const insertBlock = async (startMinute: number, endMinute: number) => {
-          await started.promise;
-          return prisma.timedReservation.create({
-            data: { parkingSpotId: spot.id, date: DATE, startMinute, endMinute, guestName: 'Host' },
-          });
-        };
+        const holdsLock = resolvable();
+        const releaseT1 = resolvable();
 
-        const attempts = [insertBlock(540, 630), insertBlock(600, 660)];
-        started.resolve();
-        const outcomes = await Promise.allSettled(attempts);
+        // T1: an interactive transaction that inserts a block, then sits on
+        // the `lock_spot_day` advisory lock (transaction-scoped, so it stays
+        // held until commit) until told to proceed.
+        const t1 = prisma.$transaction(
+          async (tx) => {
+            await block(tx, spot.id, 540, 630);
+            holdsLock.resolve();
+            await releaseT1.promise;
+          },
+          { maxWait: 10_000, timeout: 30_000 }
+        );
 
-        const successes = outcomes.filter((outcome) => outcome.status === 'fulfilled');
-        const failures = outcomes.filter((outcome) => outcome.status === 'rejected');
-        expect(successes.length).toBe(1);
-        expect(failures.length).toBe(1);
+        await holdsLock.promise;
 
-        const error = (failures[0] as PromiseRejectedResult).reason as unknown;
+        // T2: a separate, autocommit statement for an overlapping block on
+        // the same spot-day. Its own trigger calls `lock_spot_day` with the
+        // same key and has to wait for T1. Prisma Client queries are lazy —
+        // nothing is sent to the server until something subscribes to the
+        // promise — so a no-op `.catch()` right here is what actually
+        // dispatches the statement; without it, T2 would not even reach
+        // Postgres until the later `Promise.allSettled` below, by which time
+        // T1 would already have committed and there would be nothing to wait
+        // on at all.
+        const t2 = block(prisma, spot.id, 600, 660);
+        void t2.catch(() => {
+          // Handled via `outcomes` below; this only exists to trigger dispatch.
+        });
+
+        // Don't let T1 commit until T2 is actually queued on the lock — see
+        // the comment on `advisoryLockIsBlocked` above for why this matters.
+        // Release T1 either way: leaving its transaction open on a failed
+        // assertion would dangle a lock that the `finally` block's own
+        // cleanup queries would then wait on forever.
+        const sawBlockedLock = await waitUntilAdvisoryLockIsBlocked();
+        releaseT1.resolve();
+        expect(sawBlockedLock).toBe(true);
+
+        const outcomes = await Promise.allSettled([t1, t2]);
+        expect(outcomes[0]?.status).toBe('fulfilled');
+        expect(outcomes[1]?.status).toBe('rejected');
+
+        const error = (outcomes[1] as PromiseRejectedResult).reason as unknown;
         expect(error).toBeInstanceOf(Prisma.PrismaClientKnownRequestError);
         const known = error as Prisma.PrismaClientKnownRequestError;
         expect(mapPrismaErrorCode(known)).toBe('SPOT_ALREADY_RESERVED');
         expect(isTimedReservationConflict(known)).toBe(true);
+        expect(known.meta).toMatchObject({
+          driverAdapterError: {
+            cause: { constraint: { index: 'TimedReservation_spot_day_conflict' } },
+          },
+        });
       } finally {
         await prisma.timedReservation.deleteMany({ where: { parkingSpotId: spot.id } });
         await prisma.parkingSpot.delete({ where: { id: spot.id } });
       }
     });
 
-    it('a block vs. a full-day reservation, concurrently: exactly one commits, the loser is SPOT_ALREADY_RESERVED', async () => {
+    it('a block vs. a full-day reservation, concurrently: the reservation waits and loses', async () => {
       const spot = await prisma.parkingSpot.create({
         data: { label: unique('SPOT'), group: 'IT' },
       });
@@ -584,39 +659,51 @@ describe('what PostgreSQL actually does', () => {
         },
       });
       try {
-        const started = resolvable();
-        const insertBlock = async () => {
-          await started.promise;
-          return prisma.timedReservation.create({
-            data: {
-              parkingSpotId: spot.id,
-              date: DATE,
-              startMinute: 540,
-              endMinute: 600,
-              guestName: 'Host',
-            },
-          });
-        };
-        const insertReservation = async () => {
-          await started.promise;
-          return prisma.reservation.create({
-            data: { parkingSpotId: spot.id, userId: user.id, date: DATE },
-          });
-        };
+        const holdsLock = resolvable();
+        const releaseT1 = resolvable();
 
-        const attempts = [insertBlock(), insertReservation()];
-        started.resolve();
-        const outcomes = await Promise.allSettled(attempts);
+        // T1: an interactive transaction holding a block's slot on the lock.
+        const t1 = prisma.$transaction(
+          async (tx) => {
+            await block(tx, spot.id, 540, 600);
+            holdsLock.resolve();
+            await releaseT1.promise;
+          },
+          { maxWait: 10_000, timeout: 30_000 }
+        );
 
-        const successes = outcomes.filter((outcome) => outcome.status === 'fulfilled');
-        const failures = outcomes.filter((outcome) => outcome.status === 'rejected');
-        expect(successes.length).toBe(1);
-        expect(failures.length).toBe(1);
+        await holdsLock.promise;
 
-        const error = (failures[0] as PromiseRejectedResult).reason as unknown;
+        // T2: a full-day reservation on the same spot-day, autocommit. Its
+        // trigger (`reservation_reject_timed_conflict`) calls the same
+        // `lock_spot_day` key and has to wait for T1. The `.catch()` here is
+        // load-bearing, not decorative — see the comment on the previous
+        // test's `t2` for why: Prisma Client queries are lazy, and nothing
+        // reaches Postgres until something subscribes to the promise.
+        const t2 = prisma.reservation.create({
+          data: { parkingSpotId: spot.id, userId: user.id, date: DATE },
+        });
+        void t2.catch(() => {
+          // Handled via `outcomes` below; this only exists to trigger dispatch.
+        });
+
+        const sawBlockedLock = await waitUntilAdvisoryLockIsBlocked();
+        releaseT1.resolve();
+        expect(sawBlockedLock).toBe(true);
+
+        const outcomes = await Promise.allSettled([t1, t2]);
+        expect(outcomes[0]?.status).toBe('fulfilled');
+        expect(outcomes[1]?.status).toBe('rejected');
+
+        const error = (outcomes[1] as PromiseRejectedResult).reason as unknown;
         expect(error).toBeInstanceOf(Prisma.PrismaClientKnownRequestError);
         const known = error as Prisma.PrismaClientKnownRequestError;
         expect(mapPrismaErrorCode(known)).toBe('SPOT_ALREADY_RESERVED');
+        expect(known.meta).toMatchObject({
+          driverAdapterError: {
+            cause: { constraint: { index: 'Reservation_timed_reservation_conflict' } },
+          },
+        });
       } finally {
         await prisma.timedReservation.deleteMany({ where: { parkingSpotId: spot.id } });
         await prisma.reservation.deleteMany({ where: { parkingSpotId: spot.id } });

@@ -12,6 +12,7 @@
 
 import { Prisma } from '@garage/database';
 import {
+  isTimedReservationConflict,
   isUniqueConstraintViolation,
   mapPrismaErrorCode,
   mapUniqueConstraintViolation,
@@ -52,6 +53,11 @@ describe('mapUniqueConstraintViolation', () => {
     ['WaitlistEntry_parkingSpotId_userId_date_key', 'ALREADY_IN_WAITLIST'],
     ['User_email_key', 'CONFLICT'],
     ['ParkingSpot_label_key', 'CONFLICT'],
+    // The two hand-named constraints the (spot, day) exclusivity triggers
+    // raise (`20260924120000_timed_reservation`) — not Prisma's own
+    // `Table_cols_key` naming, matched by exact name instead of column set.
+    ['TimedReservation_spot_day_conflict', 'SPOT_ALREADY_RESERVED'],
+    ['Reservation_timed_reservation_conflict', 'SPOT_ALREADY_RESERVED'],
   ])('maps the constraint name %s to %s', (target, expected) => {
     expect(mapUniqueConstraintViolation({ target })).toBe(expected);
   });
@@ -81,6 +87,8 @@ describe('mapUniqueConstraintViolation', () => {
     ['WaitlistEntry_parkingSpotId_userId_date_key', 'ALREADY_IN_WAITLIST'],
     ['User_email_key', 'CONFLICT'],
     ['ParkingSpot_label_key', 'CONFLICT'],
+    ['TimedReservation_spot_day_conflict', 'SPOT_ALREADY_RESERVED'],
+    ['Reservation_timed_reservation_conflict', 'SPOT_ALREADY_RESERVED'],
   ])('maps the driver adapter’s constraint index %s to %s', (index, expected) => {
     expect(mapUniqueConstraintViolation(driverAdapterMeta(index))).toBe(expected);
   });
@@ -142,6 +150,28 @@ describe('mapPrismaErrorCode', () => {
 
   it('returns undefined for a code it does not know, so it becomes a 500', () => {
     expect(mapPrismaErrorCode(prismaError('P1001'))).toBeUndefined();
+  });
+});
+
+describe('isTimedReservationConflict', () => {
+  it.each(['TimedReservation_spot_day_conflict', 'Reservation_timed_reservation_conflict'])(
+    'is true for %s',
+    (target) => {
+      expect(isTimedReservationConflict(prismaError('P2002', { target: [target] }))).toBe(true);
+    }
+  );
+
+  it('is false for the plain Reservation(parkingSpotId, date) collision', () => {
+    expect(
+      isTimedReservationConflict(
+        prismaError('P2002', { target: ['Reservation_parkingSpotId_date_key'] })
+      )
+    ).toBe(false);
+  });
+
+  it('is false for a non-P2002 error and for a non-Prisma error', () => {
+    expect(isTimedReservationConflict(prismaError('P2025'))).toBe(false);
+    expect(isTimedReservationConflict(new Error('not a Prisma error'))).toBe(false);
   });
 });
 

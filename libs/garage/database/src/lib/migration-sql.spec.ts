@@ -262,6 +262,23 @@ describe('reservation-limit-settings migration — hand-written constraints', ()
   });
 });
 
+describe('timed-reservation migration — column types', () => {
+  const timedReservationSql = readMigration('20260924120000_timed_reservation').replace(
+    /\s+/g,
+    ' '
+  );
+
+  it('startMinute and endMinute are SMALLINT, not TEXT', () => {
+    const createTable = timedReservationSql.match(
+      /CREATE TABLE "TimedReservation" \((.*?)\);/
+    )?.[1];
+    expect(createTable).toBeDefined();
+    expect(createTable).toContain('"startMinute" SMALLINT NOT NULL');
+    expect(createTable).toContain('"endMinute" SMALLINT NOT NULL');
+    expect(createTable).not.toMatch(/"(start|end)Minute" TEXT/);
+  });
+});
+
 describe('migration_lock.toml', () => {
   it('pins the provider to postgresql', () => {
     const lock = readFileSync(join(MIGRATIONS_DIR, 'migration_lock.toml'), 'utf8');

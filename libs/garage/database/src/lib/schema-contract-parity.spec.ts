@@ -209,9 +209,9 @@ describe('storage types that are deliberately not the wire types', () => {
   });
 
   it('a timed block is minutes-since-midnight in storage and HH:MM strings on the wire', () => {
-    // Task 3 owns the conversion (`timeOfDayToMinutes`/`minutesToTimeOfDay`,
-    // `@garage/shared-types`). The column being `SMALLINT`, not `TEXT`, is
-    // asserted in `migration-sql.spec.ts`.
+    // `timeOfDayToMinutes`/`minutesToTimeOfDay` (`@garage/shared-types`) own
+    // the conversion at the boundary. The column being `SMALLINT`, not
+    // `TEXT`, is asserted in `migration-sql.spec.ts`.
     const storage: [
       Expect<Equal<PrismaTimedReservation['startMinute'], number>>,
       Expect<Equal<PrismaTimedReservation['endMinute'], number>>,
