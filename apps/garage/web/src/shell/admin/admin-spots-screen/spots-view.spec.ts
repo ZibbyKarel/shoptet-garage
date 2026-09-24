@@ -69,6 +69,8 @@ describe('shouldShowFailureIn', () => {
     // looking at the row, and no dialog is an origin for it.
     expect(shouldShowFailureIn('spotRevive', null, 'table')).toBe(true);
     expect(shouldShowFailureIn('spotRevive', 'delete', 'dialog')).toBe(false);
+    expect(shouldShowFailureIn('spotVisibility', null, 'table')).toBe(true);
+    expect(shouldShowFailureIn('spotVisibility', 'edit', 'dialog')).toBe(false);
   });
 
   it('shows nothing at all for a write that never reaches this screen', () => {

@@ -59,6 +59,7 @@ export type AdminWrite =
   | 'spotRename'
   | 'spotRetire'
   | 'spotRevive'
+  | 'spotVisibility'
   | 'windowUpdate'
   | 'limitsUpdate';
 
@@ -154,6 +155,16 @@ const MESSAGES: Record<
       // nothing (`SpotsService.update` only checks reservations when `active`
       // goes to `false`, and the label is unchanged). Claiming a duplicate
       // label here would be inventing a cause.
+      NOT_FOUND: 'errSpotNotFound',
+    },
+  },
+  spotVisibility: {
+    fallback: 'errFallbackSpot',
+    byCode: {
+      ...FORBIDDEN_ROW,
+      // No `CONFLICT` and no `VALIDATION_FAILED`: hiding is not retiring
+      // (`SpotsService.update` checks commitments only when `active` goes to
+      // `false`), and neither a label nor a group is sent.
       NOT_FOUND: 'errSpotNotFound',
     },
   },

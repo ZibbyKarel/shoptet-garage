@@ -51,7 +51,8 @@ export function AdminSpotsPanel() {
   /**
    * Invalidates everything a spot change can be seen through: the admin table,
    * the plain `spot.list` behind the settings picker, and today's overview,
-   * whose grid loses or gains a cell when a spot is retired or revived.
+   * whose grid loses or gains a cell when a spot is retired, revived, hidden
+   * or shown.
    */
   function invalidateSpotViews() {
     queryClient.invalidateQueries({ queryKey: api.admin.spot.key() });
@@ -158,6 +159,10 @@ export function AdminSpotsPanel() {
       onActiveChange={(id, active) => {
         startWrite(active ? 'spotRevive' : 'spotRetire', id);
         updateSpot.mutate({ id, active });
+      }}
+      onHiddenChange={(id, hidden) => {
+        startWrite('spotVisibility', id);
+        updateSpot.mutate({ id, hidden });
       }}
       onDeactivate={async (id) => {
         startWrite('spotRetire', id);

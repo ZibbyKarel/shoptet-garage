@@ -25,6 +25,13 @@
  * than offering a control that cannot work. See
  * `doc/decision/0164-parking-categories-stay-a-closed-enum.md`.
  *
+ * ## "Skryté" hides, it does not retire
+ *
+ * A hidden spot is seen and booked by admins only; normal users do not see it
+ * anywhere (`doc/decision/0316-hidden-spots-are-seen-and-booked-by-admins-only`).
+ * Unlike the activity switch it collides with nothing, so it has no conflict
+ * copy of its own.
+ *
  * Presentational: `../admin-spots-panel.tsx` is the connected half.
  */
 
@@ -78,6 +85,8 @@ export interface AdminSpotsScreenProps {
   readonly onSave: (input: { id: string; label: string; group: ParkingGroup }) => Promise<void>;
   /** Inline activity switch. Fire-and-forget: the row reports through `rowError`. */
   readonly onActiveChange: (id: string, active: boolean) => void;
+  /** Inline "Skryté" switch. Fire-and-forget, like `onActiveChange`. */
+  readonly onHiddenChange: (id: string, hidden: boolean) => void;
   /** Resolves when the spot is retired; rejects to keep the dialog open. */
   readonly onDeactivate: (id: string) => Promise<void>;
   /**
@@ -111,6 +120,7 @@ export function AdminSpotsScreen({
   onCreate,
   onSave,
   onActiveChange,
+  onHiddenChange,
   onDeactivate,
   pendingSpotId,
   isSaving,
@@ -164,6 +174,7 @@ export function AdminSpotsScreen({
             {spot.label}
           </Text>
           {spot.active ? null : <Badge tone="neutral">{t('spotsInactive')}</Badge>}
+          {spot.hidden ? <Badge tone="neutral">{t('spotsHidden')}</Badge> : null}
         </Stack>
       ),
     },
@@ -236,6 +247,19 @@ export function AdminSpotsScreen({
           aria-label={t('spotsActiveToggleLabel', { label: spot.label })}
           disabled={pendingSpotId === spot.id}
           onCheckedChange={(next) => onActiveChange(spot.id, next)}
+        />
+      ),
+    },
+    {
+      id: 'hidden',
+      header: t('spotsColumnHidden'),
+      width: '110px',
+      cell: (spot) => (
+        <Switch
+          checked={spot.hidden}
+          aria-label={t('spotsHiddenToggleLabel', { label: spot.label })}
+          disabled={pendingSpotId === spot.id}
+          onCheckedChange={(next) => onHiddenChange(spot.id, next)}
         />
       ),
     },

@@ -259,6 +259,13 @@ describe('toSpotView', () => {
     );
   });
 
+  it('marks a hidden spot for an admin only', () => {
+    const hidden = spotRow({ spot: { ...spotRow().spot, hidden: true } });
+    expect(toSpotView(hidden, context({ isAdmin: true })).hidden).toBe(true);
+    expect(toSpotView(hidden, context({ isAdmin: false })).hidden).toBe(false);
+    expect(toSpotView(spotRow(), context({ isAdmin: true })).hidden).toBe(false);
+  });
+
   it('carries the waitlist through in every appearance', () => {
     const row = { waitlistCount: 2, viewerWaitlistEntryId: 'w-1', viewerWaitlistPosition: 2 };
     for (const ctx of [
