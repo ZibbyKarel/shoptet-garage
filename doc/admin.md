@@ -99,10 +99,14 @@ switch and an `Aktivní` switch, both writing `admin.user.update`.
 
 `admin.spot.list({ includeInactive: true })` joined with today's `overview.day`
 for the "Stav dnes" column. Per row: an inline category `Select`, an `Aktivní`
-switch, `Upravit` (a `Modal` form) and `Smazat` (a `ConfirmDialog`).
+switch, a `Skryté` switch, `Upravit` (a `Modal` form) and `Smazat` (a
+`ConfirmDialog`).
 
 - `Smazat` calls `admin.spot.deactivate` — a soft delete, refused while
   somebody holds the spot from today onwards. `doc/decision/0163-*`.
+- `Skryté` hides a spot from everybody but admins — it is not a retirement,
+  refuses nothing, and a hidden row carries a `Skryté` badge here and on the
+  lot. `doc/decision/0316-hidden-spots-are-seen-and-booked-by-admins-only`.
 - The category band counts; it does not edit. Categories are a closed enum.
   `doc/decision/0164-*`.
 - A spot missing from the day overview (every inactive spot is) shows `—`, not

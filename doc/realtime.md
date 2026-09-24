@@ -477,6 +477,12 @@ because `dateOnlySchema` accepts any calendar-valid date and the websocket path
 has no `ThrottlerGuard` in front of it, so without one an authenticated socket
 could ask to join millions of rooms.
 
+An event about a **hidden** spot (`SpotsService.isHidden`) goes only to the
+admin sockets in the day room — `emitToAdminsIn` walks the room and checks
+`socket.data.role`, which the handshake now writes next to `user`. That walk
+is local to the process; see "Single instance, and what changes when that
+stops being true". `doc/decision/0316-hidden-spots-are-seen-and-booked-by-admins-only`.
+
 ### The editing hold
 
 `LockService` is an abstract class with one in-memory implementation. Ownership

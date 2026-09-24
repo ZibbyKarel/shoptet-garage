@@ -391,8 +391,8 @@ service layer, same as the window (ruling window-2).
 | `admin.spot.deactivate` | `{ id }`                              | `ParkingSpot` | `NOT_FOUND`, `CONFLICT`                      |
 
 `spot.list` exists for a regular user too, because the settings screen needs
-a picker for `preferredParkingSpotId`. It returns only active spots and takes
-no filters.
+a picker for `preferredParkingSpotId`. It returns only active, non-hidden
+spots and takes no filters.
 
 `CONFLICT` on `create`/`update` is a duplicate `label` (unique across the
 whole lot); on `deactivate` it's a spot with future reservations — an admin
