@@ -152,10 +152,10 @@ copy is keyed by code (`libs/shared/i18n`).
 Two "window" codes are deliberately distinguished, because they tell the user
 something different:
 
-| code                  | target month's state | what happened                                                        |
-| --------------------- | -------------------- | -------------------------------------------------------------------- |
-| `OUT_OF_HORIZON`      | `NOT_YET_OPEN`       | reservations for that month aren't open yet                          |
-| `RESERVATIONS_LOCKED` | `LOCKED`             | the window has already closed (including any month that has started) |
+| code                  | target month's state | what happened                                                                                                  |
+| --------------------- | -------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `OUT_OF_HORIZON`      | `NOT_YET_OPEN`       | reservations for that month aren't open yet                                                                    |
+| `RESERVATIONS_LOCKED` | `LOCKED`             | an admin has forced the lock (`FORCE_LOCKED`); under `AUTO` a started month stays open (`doc/decision/0315-*`) |
 
 Both are returned by the service layer based on `monthLockState()`, never by
 a schema.
@@ -286,8 +286,8 @@ admin may add further non-overlapping blocks to it.
 | ------------------------- | ------------------------- | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `reservation.create`      | `{ parkingSpotId, date }` | `Reservation`                                      | `NOT_FOUND`, `SPOT_ALREADY_RESERVED`, `RESERVATION_LIMIT_REACHED`, `PAST_DATE`, `OUT_OF_HORIZON`, `RESERVATIONS_LOCKED`, `VALIDATION_FAILED`, `CONFLICT` |
 | `reservation.cancel`      | `{ reservationId }`       | `{ reservationId, date, parkingSpotId, promoted }` | `NOT_FOUND`, `CONFLICT`                                                                                                                                  |
-| `reservation.myMonth`     | `{ month }`               | `{ month, reservedDates[], count, cap }`           | —                                                                                                                                                        |
-| `admin.reservation.month` | `{ userId, month }`       | `{ month, reservedDates[], count, cap }`           | —                                                                                                                                                        |
+| `reservation.myMonth`     | `{ month }`               | `{ month, reservedDates[], count, cap \| null }`   | —                                                                                                                                                        |
+| `admin.reservation.month` | `{ userId, month }`       | `{ month, reservedDates[], count, cap \| null }`   | —                                                                                                                                                        |
 
 `reservation.cancel` **deliberately declares no window error.** Per
 `doc/decision/0004-*`, a regular user may cancel their own reservation at any
@@ -318,6 +318,10 @@ client's whole job with the two numbers is `cap - count`, and a count and a
 cap fetched from two independent round trips could disagree the moment an
 admin changes the setting between them. See "Reservation limits (admin)"
 below for where `cap` is written.
+
+`cap` is `null` when no cap applies to that month today — outside the `AUTO`
+window or under either override (`isMonthlyCapInForce`, `doc/decision/0315-*`);
+a client must then not bound the selection.
 
 ### Waitlist
 

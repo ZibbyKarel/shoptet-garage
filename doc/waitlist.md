@@ -205,7 +205,9 @@ It is not free, either. A month-scoped resource cannot be ordered against
 date-scoped row locks, and the cap opened a new `confirmBulk` × `cancel` +
 `promote` cycle that is resolved the same way this one is — by retrying and
 reporting `CONFLICT`. See `doc/decision/0307-*` and the deadlock table in
-`doc/bulk-reservation.md`.
+`doc/bulk-reservation.md`. Promotion checks the cap only while it is in force
+(`isMonthlyCapInForce`); a spot freed in the running month goes to the first
+eligible waiter uncapped, and no cap lock is taken (`doc/decision/0315-*`).
 
 ### What is deliberately _not_ protected
 

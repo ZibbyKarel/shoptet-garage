@@ -442,7 +442,7 @@ describe('toBannerView', () => {
   it('never quotes a date when an admin forced the state', () => {
     // `monthWindowOverviewSchema`: windowFrom/windowTo are the range the AUTO
     // rule *would* have produced and are hypothetical under an override, so
-    // "zapisovat lze do 31. srpna" would be a false statement.
+    // "do 31. srpna platí měsíční limit" would be a false statement.
     const view = toBannerView(window({ lockMode: 'FORCE_OPEN' }), false, cs);
     expect(view.messageKey).toBe('bannerOpenForced');
     expect(view.values.until).toBe('');

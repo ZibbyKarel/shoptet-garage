@@ -208,3 +208,4 @@ for why, and take the next number from the end of this list.
 - [`0312-the-monthly-cap-is-its-own-settings-singleton`](0312-the-monthly-cap-is-its-own-settings-singleton.md) — 0312 – The monthly cap is its own settings singleton
 - [`0313-the-parking-application-is-renamed-garage`](0313-the-parking-application-is-renamed-garage.md) — 0313 – The parking application is renamed `garage`
 - [`0314-guest-time-blocks-are-their-own-table-and-a-trigger-keeps-them-apart-from-full-days`](0314-guest-time-blocks-are-their-own-table-and-a-trigger-keeps-them-apart-from-full-days.md) — 0314 – Guest time blocks are their own table, and a trigger keeps them apart from full days
+- [`0315-the-monthly-cap-applies-only-inside-the-auto-window`](0315-the-monthly-cap-applies-only-inside-the-auto-window.md) — 0315 – The monthly cap applies only inside the AUTO window, and a running month stays open
