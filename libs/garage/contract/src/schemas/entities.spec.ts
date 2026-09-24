@@ -4,7 +4,9 @@ import {
   auditLogSchema,
   parkingSpotSchema,
   publicReservationSchema,
+  publicTimedReservationSchema,
   reservationSchema,
+  timedReservationSchema,
   userSchema,
   userSummarySchema,
   waitlistEntrySchema,
@@ -203,6 +205,59 @@ describe('reservationSchema — the holder columns', () => {
   });
 });
 
+describe('timedReservationSchema / publicTimedReservationSchema', () => {
+  const timedReservation = {
+    id: ID,
+    parkingSpotId: OTHER_ID,
+    date: '2099-01-05',
+    startTime: '09:00',
+    endTime: '10:30',
+    guestName: 'Jan Host',
+    licensePlate: null,
+    createdAt: NOW,
+  };
+
+  it('accepts a half-hour block for a guest', () => {
+    expect(timedReservationSchema.parse(timedReservation)).toEqual(timedReservation);
+  });
+
+  it('accepts 24:00 as an end time — the day’s exclusive upper bound', () => {
+    expect(
+      timedReservationSchema.safeParse({
+        ...timedReservation,
+        startTime: '23:30',
+        endTime: '24:00',
+      }).success
+    ).toBe(true);
+  });
+
+  it('rejects a time that is not on a half hour', () => {
+    expect(
+      timedReservationSchema.safeParse({ ...timedReservation, startTime: '09:15' }).success
+    ).toBe(false);
+    expect(
+      timedReservationSchema.safeParse({ ...timedReservation, endTime: '24:01' }).success
+    ).toBe(false);
+  });
+
+  it('rejects an empty guest name — a timed block always has a guest', () => {
+    expect(timedReservationSchema.safeParse({ ...timedReservation, guestName: '' }).success).toBe(
+      false
+    );
+  });
+
+  it('projects to the six fields a viewer of the day may see', () => {
+    expect(Object.keys(publicTimedReservationSchema.parse(timedReservation)).sort()).toEqual([
+      'createdAt',
+      'endTime',
+      'guestName',
+      'id',
+      'licensePlate',
+      'startTime',
+    ]);
+  });
+});
+
 describe('parkingSpotSchema', () => {
   const validSpot = {
     id: ID,
@@ -309,6 +364,8 @@ describe('auditLogSchema', () => {
       'RESERVATION_CREATED_BY_ADMIN',
       'WAITLIST_JOINED_BY_ADMIN',
       'RESERVATION_LIMITS_UPDATED',
+      'TIMED_RESERVATION_CREATED',
+      'TIMED_RESERVATION_CANCELLED',
     ]);
     for (const action of AUDIT_LOG_ACTIONS) {
       expect(auditLogActionSchema.safeParse(action).success).toBe(true);

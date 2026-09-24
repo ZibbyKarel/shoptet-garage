@@ -24,6 +24,7 @@ import {
   reservationCancelledEventSchema,
   reservationCreatedEventSchema,
   reservationReassignedEventSchema,
+  timedReservationsUpdatedEventSchema,
   waitlistUpdatedEventSchema,
 } from './events';
 
@@ -39,6 +40,7 @@ export const SERVER_TO_CLIENT_EVENT_SCHEMAS = {
   'reservation:created': reservationCreatedEventSchema,
   'reservation:cancelled': reservationCancelledEventSchema,
   'reservation:reassigned': reservationReassignedEventSchema,
+  'timed-reservations:updated': timedReservationsUpdatedEventSchema,
   'waitlist:updated': waitlistUpdatedEventSchema,
 } as const;
 

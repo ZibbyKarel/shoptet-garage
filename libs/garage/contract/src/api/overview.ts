@@ -10,7 +10,11 @@
  */
 
 import * as z from 'zod';
-import { parkingSpotSchema, publicReservationSchema } from '../schemas/entities';
+import {
+  parkingSpotSchema,
+  publicReservationSchema,
+  publicTimedReservationSchema,
+} from '../schemas/entities';
 import { dateOnlySchema, idSchema } from '../schemas/primitives';
 import { monthWindowOverviewSchema } from '../schemas/reservation-window';
 import { authed } from './builder';
@@ -30,6 +34,13 @@ export const daySpotOverviewSchema = z.object({
   viewerWaitlistEntryId: idSchema.nullable(),
   /** The caller's 1-based position in that queue, or `null` if not queued. */
   viewerWaitlistPosition: z.int().positive().nullable(),
+  /**
+   * Guest blocks on this spot this day, ascending by `startTime`. Non-empty
+   * only while `reservation` is `null` — the database refuses both at once
+   * (`doc/decision/0314-*`). A spot with blocks cannot take a full-day
+   * reservation, but an admin may add further non-overlapping blocks.
+   */
+  timedReservations: z.array(publicTimedReservationSchema),
 });
 export type DaySpotOverview = z.infer<typeof daySpotOverviewSchema>;
 

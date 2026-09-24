@@ -10,7 +10,7 @@
 
 import * as z from 'zod';
 import { parkingGroupSchema, userRoleSchema } from './enums';
-import { dateOnlySchema, idSchema, timestampSchema } from './primitives';
+import { dateOnlySchema, halfHourTimeSchema, idSchema, timestampSchema } from './primitives';
 
 /**
  * An employee. Offboarding deactivates a user (`active: false`) instead of
@@ -156,6 +156,59 @@ export const publicReservationSchema = reservationSchema
 export type PublicReservation = z.infer<typeof publicReservationSchema>;
 
 /**
+ * A guest booked into a half-hour-granular block of one day, on one spot.
+ *
+ * A separate entity from `Reservation`, not a variant of it: a timed block is
+ * always for a guest (no `userId` at all — an employee books the whole day,
+ * unchanged), and a spot may hold **many** of them on one day, whereas
+ * `Reservation` is one-per-spot-per-day and every existing flow — the unique
+ * constraint, the waitlist, the ICS feed — depends on that being true. Mixing
+ * the two into one table would have made every one of those readers handle a
+ * case that does not apply to it.
+ *
+ * A spot cannot have both a full-day `Reservation` and any `TimedReservation`
+ * rows for the same day; a database trigger enforces the exclusivity rather
+ * than application code, because every writer of either table must obey it
+ * (`doc/decision/0314-*`).
+ *
+ * **Deliberately not `.refine()`d**: Zod v4 refuses `.pick()`/`.extend()` on a
+ * refined object, and `publicTimedReservationSchema` below needs to `.pick()`
+ * from this one. The `startTime < endTime` ordering lives on
+ * `createTimedReservationInputSchema` instead.
+ */
+export const timedReservationSchema = z.object({
+  id: idSchema,
+  parkingSpotId: idSchema,
+  date: dateOnlySchema,
+  /** Inclusive start, `HH:MM` on a half hour. */
+  startTime: halfHourTimeSchema,
+  /** Exclusive end, `HH:MM` on a half hour; `24:00` means "until midnight". */
+  endTime: halfHourTimeSchema,
+  guestName: z.string().min(1),
+  licensePlate: z.string().min(1).nullable(),
+  createdAt: timestampSchema,
+});
+export type TimedReservation = z.infer<typeof timedReservationSchema>;
+
+/**
+ * A timed block as everybody who can see the day sees it.
+ *
+ * `parkingSpotId` and `date` are absent for the same reason as on
+ * `publicReservationSchema`: every consumer already knows both from its
+ * surrounding context (the spot row of the day overview, the realtime event's
+ * `cellRef`).
+ */
+export const publicTimedReservationSchema = timedReservationSchema.pick({
+  id: true,
+  startTime: true,
+  endTime: true,
+  guestName: true,
+  licensePlate: true,
+  createdAt: true,
+});
+export type PublicTimedReservation = z.infer<typeof publicTimedReservationSchema>;
+
+/**
  * A user waiting for an already-booked spot on a given day. Queue order is
  * `createdAt`, with `id` as the tiebreaker.
  */
@@ -236,6 +289,18 @@ export const AUDIT_LOG_ACTIONS = [
    * audit trail. See `doc/decision/0312-*`.
    */
   'RESERVATION_LIMITS_UPDATED',
+  /**
+   * An admin booked a guest into a half-hour block. Not `RESERVATION_CREATED_BY_ADMIN`:
+   * that member names a row in the `Reservation` table, and a timed block is a
+   * different table with a different exclusivity rule (`doc/decision/0314-*`).
+   */
+  'TIMED_RESERVATION_CREATED',
+  /**
+   * An admin removed a timed block. Mirrors `TIMED_RESERVATION_CREATED` for the
+   * same reason `RESERVATION_CANCELLED_BY_ADMIN` mirrors `RESERVATION_CREATED_BY_ADMIN`:
+   * the row it names lives in a different table from `Reservation`.
+   */
+  'TIMED_RESERVATION_CANCELLED',
 ] as const;
 
 export const auditLogActionSchema = z.enum(AUDIT_LOG_ACTIONS);

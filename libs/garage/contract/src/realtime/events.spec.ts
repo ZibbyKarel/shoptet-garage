@@ -16,6 +16,7 @@ import {
   reservationCancelledEventSchema,
   reservationCreatedEventSchema,
   reservationReassignedEventSchema,
+  timedReservationsUpdatedEventSchema,
   waitlistUpdatedEventSchema,
 } from './events';
 
@@ -213,6 +214,39 @@ describe('waitlistUpdatedEventSchema', () => {
   });
 });
 
+describe('timedReservationsUpdatedEventSchema', () => {
+  const timedReservation = {
+    id: UUID_A,
+    startTime: '09:00',
+    endTime: '10:30',
+    guestName: 'Jana Hostová',
+    licensePlate: null,
+    createdAt: TIMESTAMP,
+  };
+  const updated = { ...cell, timedReservations: [timedReservation] };
+
+  it('carries the cell and the whole current list of blocks', () => {
+    expect(timedReservationsUpdatedEventSchema.parse(updated)).toEqual(updated);
+  });
+
+  it('accepts an empty list — the last block on a cell was just cancelled', () => {
+    expect(
+      timedReservationsUpdatedEventSchema.safeParse({ ...cell, timedReservations: [] }).success
+    ).toBe(true);
+  });
+
+  it('rejects a bare id in place of a block', () => {
+    expect(
+      timedReservationsUpdatedEventSchema.safeParse({ ...cell, timedReservations: [UUID_A] })
+        .success
+    ).toBe(false);
+  });
+
+  it('rejects a missing list: a client must not be left to guess it is empty', () => {
+    expect(timedReservationsUpdatedEventSchema.safeParse(cell).success).toBe(false);
+  });
+});
+
 describe('every event payload', () => {
   it('identifies its cell, because a client is joined to several day rooms', () => {
     // Socket.io does not tell a handler which room a message arrived through,
@@ -223,6 +257,7 @@ describe('every event payload', () => {
       reservationCreatedEventSchema,
       reservationCancelledEventSchema,
       reservationReassignedEventSchema,
+      timedReservationsUpdatedEventSchema,
       waitlistUpdatedEventSchema,
     ]) {
       expect(schema.safeParse({ parkingSpotId: UUID_B }).success).toBe(false);

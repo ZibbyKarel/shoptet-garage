@@ -32,7 +32,11 @@
 
 import * as z from 'zod';
 import { RESERVATION_REASSIGN_CAUSES } from '@garage/shared-types';
-import { publicReservationSchema, userSummarySchema } from '../schemas/entities';
+import {
+  publicReservationSchema,
+  publicTimedReservationSchema,
+  userSummarySchema,
+} from '../schemas/entities';
 import { dateOnlySchema, idSchema, timestampSchema } from '../schemas/primitives';
 
 /**
@@ -138,3 +142,17 @@ export const waitlistUpdatedEventSchema = cellRefSchema.extend({
   waitlistCount: z.int().nonnegative(),
 });
 export type WaitlistUpdatedEvent = z.infer<typeof waitlistUpdatedEventSchema>;
+
+/**
+ * `timed-reservations:updated` — the whole set of guest blocks on this cell,
+ * after a create or a cancel.
+ *
+ * `timedReservations` is the **whole current list**, not a delta: a client
+ * replaces its state rather than merges the payload into it, and a missed
+ * event self-heals on the next one instead of drifting forever. The same
+ * reason a full spot row, not a diff, travels on `reservation:created`.
+ */
+export const timedReservationsUpdatedEventSchema = cellRefSchema.extend({
+  timedReservations: z.array(publicTimedReservationSchema),
+});
+export type TimedReservationsUpdatedEvent = z.infer<typeof timedReservationsUpdatedEventSchema>;

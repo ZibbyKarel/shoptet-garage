@@ -11,8 +11,9 @@ import type { CellLockedEvent, ReservationReassignedEvent } from './events';
 import { roomForDate } from './rooms';
 
 /**
- * The six broadcasts and four commands the product needs, written out by hand
- * so that adding, renaming or losing one has to be a deliberate edit here.
+ * The seven broadcasts and four commands the product needs, written out by
+ * hand so that adding, renaming or losing one has to be a deliberate edit
+ * here.
  */
 const EXPECTED_SERVER_TO_CLIENT = [
   'cell:locked',
@@ -20,6 +21,7 @@ const EXPECTED_SERVER_TO_CLIENT = [
   'reservation:cancelled',
   'reservation:created',
   'reservation:reassigned',
+  'timed-reservations:updated',
   'waitlist:updated',
 ];
 
@@ -52,11 +54,14 @@ describe('event registries', () => {
   });
 
   it('names every event consistently: subject, colon, one lower-case word', () => {
+    // The subject itself may be hyphenated (`timed-reservations`) when the
+    // domain noun for it already is — the rule is one word *per side of the
+    // colon*, not one word with no punctuation at all.
     for (const name of [
       ...Object.keys(SERVER_TO_CLIENT_EVENT_SCHEMAS),
       ...Object.keys(CLIENT_TO_SERVER_EVENT_SCHEMAS),
     ]) {
-      expect([name, /^[a-z]+:[a-z]+$/.test(name)]).toEqual([name, true]);
+      expect([name, /^[a-z]+(?:-[a-z]+)*:[a-z]+$/.test(name)]).toEqual([name, true]);
     }
   });
 
@@ -89,6 +94,8 @@ describe('derived event maps', () => {
         const typed: ReservationReassignedEvent = payload;
         emitted.push(typed.cause);
       },
+      'timed-reservations:updated': (payload) =>
+        emitted.push(String(payload.timedReservations.length)),
       'waitlist:updated': (payload) => emitted.push(String(payload.waitlistCount)),
     };
 

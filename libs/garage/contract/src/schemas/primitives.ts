@@ -4,6 +4,7 @@
  */
 
 import * as z from 'zod';
+import { isHalfHourTime } from '@garage/shared-types';
 
 /**
  * Primary key of every entity: an RFC 9562 UUID in canonical text form, of
@@ -50,3 +51,19 @@ export const yearMonthSchema = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, {
  * `doc/decision/0015-timestamps-in-contract-are-iso-strings.md`.
  */
 export const timestampSchema = z.iso.datetime();
+
+/**
+ * A half-hour time of day, `HH:MM`: `00:00`, `00:30`, …, `23:30`, `24:00`.
+ *
+ * This validates the **format** only — that a value is one of the 49 half-hour
+ * marks the day admits. It says nothing about whether it may start a block or
+ * only end one, nor whether it comes before or after another time: `24:00` is
+ * a valid *end* (the day's exclusive upper bound, meaning "until midnight")
+ * but never a valid *start*, and ordering between a start and an end is the
+ * input schema's job (`createTimedReservationInputSchema`), because a `.refine()`
+ * on this shared primitive would apply to every field built from it, start and
+ * end alike.
+ */
+export const halfHourTimeSchema = z.string().refine(isHalfHourTime, {
+  error: 'Expected HH:MM on a half hour (00:00–24:00)',
+});
