@@ -27,10 +27,6 @@ apps/
     web-e2e/    Playwright e2e for web              tags: type:app,  scope:web
     api/        NestJS 11 (API + Socket.io gateway) tags: type:app,  scope:api
     api-e2e/    Jest integration tests against the API tags: type:app,  scope:api
-  wishlist/     feature-request board for shoptet-partner-cli users
-    web/        Next.js 16 — a scaffold, one page, no api yet
-                Nx project name `wishlist-web`, dev port 4300
-                                      tags: type:app,  scope:web, app:wishlist
 libs/
   shared/       more than one application consumes these
     design-system/
@@ -122,7 +118,6 @@ suffix scopes a script to one application.
 | command | what it does |
 | --- | --- |
 | `npm run dev:garage` | `serve` + `dev` for that app's `api` and `web` – continuous |
-| `npm run dev:wishlist` | the wishlist board's `web` on :4300 – continuous |
 | `npm run lint` | ESLint across every project (`nx run-many -t lint`), **`--max-warnings=0`** |
 | `npm run typecheck` | `tsc --noEmit` against every project's tsconfigs |
 | `npm run test` | Jest unit tests (`nx run-many -t test`) |

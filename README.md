@@ -63,7 +63,6 @@ land in another tab.
 
 ```bash
 npm run dev:garage  # serve this app's api and web (continuous)
-npm run dev:wishlist   # the wishlist board on :4300 (continuous)
 npm run lint           # every project in the workspace, both applications
 npm run typecheck
 npm test               # unit suites; excludes *.db.spec.ts, which need Postgres

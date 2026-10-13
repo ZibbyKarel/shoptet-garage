@@ -18,7 +18,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project state
 
-**This workspace hosts more than one application.** `apps/` and `libs/` are
+**This workspace is built to host more than one application**, though the
+parking app is currently the only one (a `wishlist` scaffold was removed). `apps/` and `libs/` are
 namespaced by owner: `apps/garage/*` and `libs/garage/*` belong to the
 parking app, `libs/shared/*` holds the four libs a second application also
 consumes (`design-system`, `form`, `i18n`, `api-client`). A lib's namespace
@@ -41,14 +42,6 @@ Every project therefore also carries an **`app:` tag** — `app:garage` or
 survives the rename; a list of project names does not. In `package.json`,
 an unsuffixed script is workspace-wide and a `:<app>` suffix scopes it
 (`npm run dev:garage`).
-
-The second application is `apps/wishlist/web` — a feature-request board for
-`shoptet-partner-cli` users, currently **a scaffold**: one page, no api, no
-auth, no tests. Its Nx project is `wishlist-web` (prefixed, while this app's
-are flat — `doc/decision/0310-*` explains why that asymmetry is deliberate
-and temporary), it serves on **port 4300**, and its one screen is built from
-`@garage/design-system` on purpose, so that rendering it proves the whole
-shared chain resolves from a second application.
 
 The parking app is scaffolded and all of Fáze 0–7 is written:
 `apps/garage/api` (NestJS 11), `apps/garage/web` (Next.js 16),
@@ -83,7 +76,6 @@ absent one, because a reader trusts it.
 npm ci                 # always, in a fresh worktree, before anything else
 
 npm run dev:garage  # serve,dev for this app's api and web — continuous
-npm run dev:wishlist   # the wishlist board on :4300 — continuous
 npm run lint           # nx run-many -t lint
 npm run typecheck      # nx run-many -t typecheck
 npm test               # nx run-many -t test
