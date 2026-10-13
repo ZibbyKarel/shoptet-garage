@@ -47,7 +47,7 @@ export interface EmptyStateProps {
  * The "there is nothing here" block: a centred title, an optional explanation,
  * an optional call to action.
  *
- * **Invented, not drawn.** No screen in `doc/design/lets-park-design.dc.html`
+ * **Invented, not drawn.** No screen in `doc/design/garage-design.dc.html`
  * shows an empty list — every mock ships with sample rows — so the layout and
  * the spacing steps here are derived from the design's language (centred,
  * `--fg-3` for secondary text, the card's own 24px gutter) rather than copied

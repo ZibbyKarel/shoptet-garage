@@ -5,7 +5,7 @@
  * identity and its menu on the right.
  *
  * Drawn from `doc/design/screens/02-avatar-menu.png` and the markup behind it
- * (`doc/design/lets-park-design.dc.html`, the `isApp` branch). Composition
+ * (`doc/design/garage-design.dc.html`, the `isApp` branch). Composition
  * only — `Avatar`, `Badge` and `Dropdown` are design-system primitives, and
  * nothing presentational is invented here. The menu's keyboard behaviour,
  * roving tabindex, click-outside and Escape handling all come from `Dropdown`.

@@ -14,7 +14,7 @@ Two accessibility decisions for the `libs/shared/design-system/primitives` layer
 
 ## Why
 
-**On point 1.** The design (`doc/design/lets-park-design.dc.html`) defines
+**On point 1.** The design (`doc/design/garage-design.dc.html`) defines
 `style-focus` **only for text fields and selects**, and only as a change of the
 border color to `#008FFF`. For buttons, switches and the stepper it defines no
 focus state at all – because it's written with inline styles for a static

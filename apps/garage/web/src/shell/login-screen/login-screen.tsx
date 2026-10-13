@@ -3,7 +3,7 @@
 /**
  * The signed-out canvas: the logo, two lines of explanation, one button, one
  * footnote. Drawn from `doc/design/screens/canvas-default.png` and the markup
- * behind it (`doc/design/lets-park-design.dc.html`, the `isLogin` branch).
+ * behind it (`doc/design/garage-design.dc.html`, the `isLogin` branch).
  *
  * The button is a `<form action={…}>` submit rather than an `onClick`, and that
  * is the point of splitting this file from its page: the action is a **Server

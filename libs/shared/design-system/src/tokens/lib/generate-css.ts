@@ -216,7 +216,7 @@ export function generateTokensCss(tokens: DesignTokens): string {
   --container-wide: ${layout.container.wide};
 
   /* --- Controls ---
-     DERIVED from lets-park-design.dc.html, NOT from colors_and_type.css —
+     DERIVED from garage-design.dc.html, NOT from colors_and_type.css —
      see controls.ts and doc/decision/0011-derived-control-tokens-and-rounding.md. */
   --control-h-sm: ${controls.height.sm};
   --control-h-md: ${controls.height.md};
@@ -230,7 +230,7 @@ export function generateTokensCss(tokens: DesignTokens): string {
   --switch-knob-shadow: ${controls.switch.knobShadow};
 
   /* --- Overlays and layering ---
-     DERIVED from lets-park-design.dc.html where the design draws the thing,
+     DERIVED from garage-design.dc.html where the design draws the thing,
      invented where it does not — see overlays.ts and doc/decision/0052-*. */
   --z-sticky: ${overlays.z.sticky};
   --z-bar: ${overlays.z.bar};

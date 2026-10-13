@@ -3,12 +3,12 @@
 ## What
 
 In the containerised stack the OIDC issuer is reached as
-`http://lets-park-oidc:8080/default` and the API as `http://lets-park-api:3000/api`
+`http://garage-oidc:8080/default` and the API as `http://garage-api:3000/api`
 — network aliases on the compose network — and the operator adds one line to
 the host's `/etc/hosts`:
 
 ```
-127.0.0.1 lets-park-api lets-park-oidc
+127.0.0.1 garage-api garage-oidc
 ```
 
 Nothing in the `app` profile depends on the mock issuer's container. It carries
@@ -55,13 +55,13 @@ the `dev` profile, and the API discovers JWKS lazily from whatever
 ## How
 
 - `docker-compose.yml` — `networks.default.aliases` on `mock-oauth2-server`
-  (`lets-park-oidc`) and on `api` (`lets-park-api`); the mock carries
+  (`garage-oidc`) and on `api` (`garage-api`); the mock carries
   `profiles: ['dev']` and appears in no `depends_on`.
 - `.env.docker.example` — the URLs, and the /etc/hosts line, at the top.
 - `README.md` — the same line in the first-run steps.
 
 The whole flow was then driven by a real Chromium with
-`--host-resolver-rules=MAP lets-park-oidc:8080 …` standing in for the hosts
+`--host-resolver-rules=MAP garage-oidc:8080 …` standing in for the hosts
 entry: bounce to `/login`, a real `/authorize` with PKCE and `state`, the
 issuer's form, the callback, and `200 POST /api/rpc/me/get` and
 `/api/rpc/overview/day` against the API container.

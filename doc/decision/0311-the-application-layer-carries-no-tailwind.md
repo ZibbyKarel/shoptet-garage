@@ -153,7 +153,7 @@ parking-bay geometry custom properties (`--lot-tile-h`, `--lot-tile-min-w`,
 Each carries its own comment explaining what no primitive or Tailwind
 arbitrary-value syntax can express for it — a parking bay's painted lines and
 dot-grid asphalt are the physical shape from the design
-(`doc/design/lets-park-design.dc.html`), not a step on the spacing scale, and
+(`doc/design/garage-design.dc.html`), not a step on the spacing scale, and
 `border-spacing` has no token-aware utility at all. The reasoning is the one
 `global.css` already states and `doc/decision/0310-*` echoes for the same
 class of question: this is domain geometry, and the design system stays

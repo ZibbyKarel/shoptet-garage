@@ -6,7 +6,7 @@
  * through the DOM. So the decisions live here — no React, no hooks, no
  * network — and the components below take the result and draw it. Each
  * function is transcribed from the design's own state machine
- * (`doc/design/lets-park-design.dc.html`, the `renderVals()` method), which is
+ * (`doc/design/garage-design.dc.html`, the `renderVals()` method), which is
  * the source of truth for this screen.
  *
  * Two rules the design does not state but the contract does, and which win

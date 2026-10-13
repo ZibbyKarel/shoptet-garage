@@ -7,7 +7,7 @@ access can read it too.
 
 | File | What it is |
 | --- | --- |
-| `lets-park-design.dc.html` | The complete design source (Claude Design `.dc.html`). **The binding source of truth for the visuals.** Contains every screen, state, and modal as inline-styled markup + a `DCLogic` class with sample data. |
+| `garage-design.dc.html` | The complete design source (Claude Design `.dc.html`). **The binding source of truth for the visuals.** Contains every screen, state, and modal as inline-styled markup + a `DCLogic` class with sample data. |
 | `ds/colors_and_type.css` | "Shoptet Design System — Foundations": colors, typography, spacing, radius, shadows, motion, layout as CSS custom properties. **This is the source of truth for `libs/shared/design-system/src/tokens`.** |
 | `ds/fonts/*.otf` | Neue Haas Grotesk Display Pro (8 weights) used by the design. |
 | `ds/support.js` | The Claude Design runtime (for reference only, not copied into the product). |
@@ -37,7 +37,7 @@ The design is built on the **Shoptet DS palette** (`ds/colors_and_type.css`) —
 that palette is binding for the entire design system. The triple
 `#fcaf00` / `#00e25a` / `#3b88ff` from `plan.md` **still applies**, but only as
 the `PALETTE` used for the colors of cars on occupied spots (see
-`lets-park-design.dc.html`, the `PALETTE` constant at line 472). Everything
+`garage-design.dc.html`, the `PALETTE` constant at line 472). Everything
 else — UI, buttons, badges, states — uses the Shoptet DS:
 
 - primary blue `#008FFF` (hover `#0070D6`), green `#00DB33`, yellow `#FFBE0E`,

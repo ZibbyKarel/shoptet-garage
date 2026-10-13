@@ -4,7 +4,7 @@
  * DERIVED, not sourced from `colors_and_type.css` — that file has no notion of
  * a control height, and every other token module in this lib is a byte-faithful
  * copy of it. The values below are read off the finished visual design
- * (`doc/design/lets-park-design.dc.html`), which sizes its buttons, inputs and
+ * (`doc/design/garage-design.dc.html`), which sizes its buttons, inputs and
  * selects with literal pixel heights. Keeping them here — rather than inline in
  * the primitives — is what lets `libs/shared/design-system/src/primitives` stay free of
  * hand-written pixel values.

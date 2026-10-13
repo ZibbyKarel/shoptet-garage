@@ -22,8 +22,8 @@ misleading — measured, in this order:
 
 ```
 1. bounce to /login?callbackUrl=http%3A%2F%2F0.0.0.0%3A3000%2F
-2. authorize:  redirect_uri=http://lets-park-web:4200/api/auth/callback/okta   ← correct
-3. issuer 302: → http://lets-park-web:4200/api/auth/callback/okta?code=…       ← correct
+2. authorize:  redirect_uri=http://garage-web:4200/api/auth/callback/okta   ← correct
+3. issuer 302: → http://garage-web:4200/api/auth/callback/okta?code=…       ← correct
 4. callback 302: → http://0.0.0.0:3000                                        ← wrong
 5. chrome-error://chromewebdata/
 ```
@@ -31,7 +31,7 @@ misleading — measured, in this order:
 The `redirect_uri` is right, the code exchange happens, the session cookie is
 set — and then the browser is sent to an address that does not exist. Nothing
 about it points at the environment variable that fixes it. With `AUTH_URL` set,
-step 1 reads `callbackUrl=http%3A%2F%2Flets-park-web%3A4200%2F` and step 4 lands
+step 1 reads `callbackUrl=http%3A%2F%2Fgarage-web%3A4200%2F` and step 4 lands
 on `/`.
 
 This does mean Auth.js reads one variable out of the environment on its own,
