@@ -15,7 +15,7 @@ been corrected.
 
 ### What the design's `⋯` actually does
 
-`lets-park-design.dc.html` gives the tile click and the `⋯` click two
+`garage-design.dc.html` gives the tile click and the `⋯` click two
 different handlers:
 
 ```js

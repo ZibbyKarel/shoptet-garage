@@ -60,7 +60,7 @@ properties of the container rather than of the deployment (`NODE_ENV`, `PORT`,
   `doc/decision/0202-auth-url-is-required-in-a-container-because-the-request-url-is-the-bind-address`.
 - **`.env.docker` is a second file because it describes a second topology, not
   a second application.** On the host the API is `localhost:3000` and Postgres
-  `localhost:5432`; inside the network they are `lets-park-api:3000` and
+  `localhost:5432`; inside the network they are `garage-api:3000` and
   `postgres:5432` (`doc/decision/0201-*`). Same code, same schemas, different
   addresses. Overloading `.env` with both would make `nx serve api` and
   `docker compose` disagree about which one it meant.

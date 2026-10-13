@@ -26,7 +26,7 @@ never copied literally.
 ## Why
 
 Global constraint 5 forbids hand-written color and spacing values outside the
-tokens layer. The design (`doc/design/lets-park-design.dc.html`), however, is
+tokens layer. The design (`doc/design/garage-design.dc.html`), however, is
 written with inline styles and uses **seven different button heights** and five
 font sizes, most of which don't land on the `--space-*` or `--fs-*` scale at all
 (36, 44, 52, 56 px; 13, 15, 17 px).

@@ -24,7 +24,7 @@
 @source '../src';
 
 /*
- * Light theme only. The design (`doc/design/lets-park-design.dc.html`) defines
+ * Light theme only. The design (`doc/design/garage-design.dc.html`) defines
  * a single light appearance; there is no dark palette in the token set to
  * switch to, so the story canvas states the design's page background rather
  * than inheriting the browser's.

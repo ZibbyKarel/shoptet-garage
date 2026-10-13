@@ -54,7 +54,7 @@ staying alive (`doc/decision/0002-visual-design-source-of-truth`).
 | Path                                                    | What it is                                                                                           |
 | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | [`design/README.md`](design/README.md)                  | What was exported, from where, and how to read it.                                                   |
-| `design/lets-park-design.dc.html`                       | The design canvas itself.                                                                            |
+| `design/garage-design.dc.html`                       | The design canvas itself.                                                                            |
 | `design/ds/colors_and_type.css`, `design/ds/support.js` | The source palette and type scale the tokens were derived from.                                      |
 | `design/ds/fonts/*.otf`                                 | Eight Neue Haas Grotesk faces (`doc/decision/0012-otf-fonts-committed-without-verified-license`).    |
 | `design/screens/*.png`                                  | 14 numbered screen exports plus two canvas overviews — the reference every screen was built against. |

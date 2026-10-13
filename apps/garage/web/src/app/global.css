@@ -64,7 +64,7 @@ body {
  *
  * These four are the only numbers on that screen the token scale cannot
  * express: a parking bay is a physical shape from the design
- * (`doc/design/lets-park-design.dc.html`, the `sc-for` over `group.spots`),
+ * (`doc/design/garage-design.dc.html`, the `sc-for` over `group.spots`),
  * not a step on a 4px spacing ramp, and rounding 236px onto `--space-*`
  * would change the drawing. They live here — one place, named, with the
  * design line beside them — rather than as literals sprinkled through TSX,

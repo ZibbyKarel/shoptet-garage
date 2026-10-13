@@ -77,11 +77,11 @@ fails safe.
 - **Session logs** — `.superpowers/**`, `docs/superpowers/**`,
   `.playwright-mcp/*.yml`. Dated transcripts of work that happened; rewriting
   them would make them lie.
-- **`Lets Park.dc.html` and `doc/design/lets-park-design.dc.html`.** The first
-  is the artifact's name inside Claude Design, which this repository cannot
-  rename; the second is its local export, kept matching so the ~25 comments
-  that cite it keep pointing at something that exists
-  (`doc/decision/0002-visual-design-source-of-truth.md`).
+- **`Lets Park.dc.html`** — the artifact's name inside Claude Design, which
+  this repository cannot rename. Its local export was originally kept as
+  `doc/design/lets-park-design.dc.html`; it was renamed to
+  `doc/design/garage-design.dc.html` on 2026-10-13, together with every
+  comment that cites it (`doc/decision/0002-visual-design-source-of-truth.md`).
 
 ## Consequences
 
@@ -91,9 +91,10 @@ fails safe.
 - `.env` is git-ignored and does not travel with a worktree, so every
   worktree's copy carries the old `DATABASE_URL` until it is refreshed from
   the root one.
-- The GitHub repository was already `shoptet-apps`, named after the repository
-  rather than its first application (root `package.json`, §`// name`), so the
-  rename needed nothing there. The local checkout directory was renamed to
+- The GitHub repository was `shoptet-apps` at the time of this record, so the
+  rename needed nothing there; on 2026-10-13 it was renamed to
+  `ZibbyKarel/shoptet-garage` (GitHub redirects the old URL). The local
+  checkout directory was renamed to
   match (`~/Workspace/lets-park` → `~/Workspace/shoptet-apps`), which is why
   Compose derives the project name `shoptet-apps`: the containers are
   `shoptet-apps-postgres-1` and friends. Their **network aliases**, which is

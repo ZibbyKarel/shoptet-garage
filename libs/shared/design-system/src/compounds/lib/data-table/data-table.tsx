@@ -167,7 +167,7 @@ export interface DataTableProps<TData> {
  * appearance to show for it — every mock draws an arrow on exactly one column.
  * This is TanStack's `enableSortingRemoval: false` plus `sortDescFirst: false`,
  * and it reproduces the design's own `sortDir` logic exactly
- * (`lets-park-design.dc.html`, `userCols`).
+ * (`garage-design.dc.html`, `userCols`).
  *
  * Domain-free: every string on screen arrives as a prop.
  */

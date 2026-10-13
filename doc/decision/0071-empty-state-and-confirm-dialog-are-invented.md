@@ -4,7 +4,7 @@
 
 Two of the three compounds have **no model in the design**:
 
-- **`EmptyState`** – no screen in `doc/design/lets-park-design.dc.html` shows a
+- **`EmptyState`** – no screen in `doc/design/garage-design.dc.html` shows a
   list with nothing in it. Every mock ships with sample rows.
 - **`ConfirmDialog`** – the design draws the `Smazat` ("Delete") button that
   would open one (`doc/design/screens/04-admin-spots.png`) but never the

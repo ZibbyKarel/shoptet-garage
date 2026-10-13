@@ -373,7 +373,7 @@ branch.
    design.
 2. Primitives: **Button, Input, Select, Checkbox, Radio, Badge, Avatar,
    Switch, Stepper**. Derive appearance and variants from
-   `doc/design/lets-park-design.dc.html` and the screenshots
+   `doc/design/garage-design.dc.html` and the screenshots
    (`doc/design/screens/`) – e.g. the pill radius on the CTA (`--radius-cta`),
    the primary blue `#008FFF`, the secondary "outline" button, the danger
    variant ("Zrušit rezervaci" – "Cancel reservation").

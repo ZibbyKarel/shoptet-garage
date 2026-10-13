@@ -16,7 +16,7 @@ A new settings entity (singleton) `ReservationWindowSettings`:
 | `openDaysBefore` | int (1–31) | `7` |
 | `lockMode` | `AUTO` \| `FORCE_OPEN` \| `FORCE_LOCKED` | `AUTO` |
 
-Deriving the month state (exactly per `doc/design/lets-park-design.dc.html`, function
+Deriving the month state (exactly per `doc/design/garage-design.dc.html`, function
 `monthOpen`, lines 546–554):
 
 ```

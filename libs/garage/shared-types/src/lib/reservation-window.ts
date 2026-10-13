@@ -2,7 +2,7 @@
  * The reservation window — pure, parameterised, side-effect free.
  *
  * The algorithm started as the `monthOpen` function of the approved visual
- * design (`doc/design/lets-park-design.dc.html`, transcribed by
+ * design (`doc/design/garage-design.dc.html`, transcribed by
  * `doc/decision/0004-mvp-scope-includes-design-features.md`) and was amended
  * by `doc/decision/0315-the-monthly-cap-applies-only-inside-the-auto-window.md`:
  *

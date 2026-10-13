@@ -2,7 +2,7 @@
 
 /**
  * {@link DatePickerDialog} — the calendar the header's date pill opens
- * (`doc/design/lets-park-design.dc.html`'s `datePickerOpen` branch).
+ * (`doc/design/garage-design.dc.html`'s `datePickerOpen` branch).
  *
  * The grid itself borrows `../bulk-modal/bulk-modal.tsx`'s table: a `<caption>` for the
  * accessible name, weekday heads, and a button per day. What differs is the

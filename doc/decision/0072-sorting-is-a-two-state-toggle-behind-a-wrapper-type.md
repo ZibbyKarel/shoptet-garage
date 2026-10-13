@@ -36,7 +36,7 @@ decisions about that boundary:
 ### The two-state toggle
 
 - **It is the design's own logic, not a simplification of it.**
-  `lets-park-design.dc.html` implements the users table as
+  `garage-design.dc.html` implements the users table as
   `sortDir: s.sortKey === c.key ? -s.sortDir : 1` — flip on the same key, start
   at ascending on a new one. There is no third branch.
 - **The design has no unsorted appearance to show.** Every mock draws an arrow on

@@ -7,7 +7,7 @@
  *   `./date-picker-dialog`'s `DatePickerDialog`), the "Dnes" shortcut, the
  *   occupancy pill and the bulk-reservation button. This is where
  *   `./date-nav-bar`'s sticky footer bar moved to
- *   (`doc/design/lets-park-design.dc.html`'s current `isLot` header row) —
+ *   (`doc/design/garage-design.dc.html`'s current `isLot` header row) —
  *   there is no footer left on this screen (Task 25 revisited).
  * - {@link WindowBanner} — the one true sentence about the month's window;
  * - {@link RealtimeNotice} — the affordance for a refused socket.

@@ -4,7 +4,7 @@
  * DERIVED, not sourced from `colors_and_type.css` — that file describes a flat
  * page and has no notion of a stacking order, a scrim or a dialog width. Like
  * `controls.ts`, the values below are read off the finished visual design
- * (`doc/design/lets-park-design.dc.html`) wherever the design draws the thing
+ * (`doc/design/garage-design.dc.html`) wherever the design draws the thing
  * at all, and invented where it does not. Which is which is marked per entry.
  *
  * Keeping them here — rather than inline in the primitives — is what lets

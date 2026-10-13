@@ -39,7 +39,7 @@ with the same text.
 
 ### The design source says the prop toggles something else entirely
 
-`lets-park-design.dc.html` declares `showLockState` as a prototype prop and uses
+`garage-design.dc.html` declares `showLockState` as a prototype prop and uses
 it in exactly one place:
 
 ```js
